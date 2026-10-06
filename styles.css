@@ -118,7 +118,7 @@ html{scrollbar-gutter:stable}
 #detail-dialog .dialog-content::-webkit-scrollbar-thumb{background:#476477;border-radius:10px}
 #detail-dialog .dialog-content::-webkit-scrollbar-thumb:hover{background:#6a9a9e}
 
-/* Phone-only glass: roomy cards, scroll lighting, and a slow reflected shimmer. */
+/* Phone-only glass: roomy cards, selection lighting, and a slow reflected shimmer. */
 @media(max-width:600px){
   .section-wrap{width:calc(100% - 32px)}
   .skills-grid,.internships,.credential-grid{grid-template-columns:minmax(0,1fr)}
@@ -135,11 +135,11 @@ html{scrollbar-gutter:stable}
   .certifications strong{font-size:20px;overflow-wrap:anywhere}
   .certifications button>span:nth-child(2){min-width:0}
   .cert-plus,.circle-plus{flex-shrink:0}
-  .glass-control::after{display:block;background:radial-gradient(190px circle at var(--glow-x) var(--glow-y),#b8ffe659 0%,#86ffcc24 38%,transparent 75%);opacity:.16;transition:opacity .5s}
-  .glass-control.mobile-lit{border-color:#a5ffdb80;box-shadow:inset 0 1px 0 #e8fff97a,inset 0 -1px 0 #6ee3b536,0 0 28px #6bfcc925,0 12px 28px #0004}
-  .glass-control.mobile-lit::after{opacity:.75}
-  .glass-control.mobile-touch::after{opacity:1}
-  .glass-control.mobile-touch{border-color:#c1ffe6ba}
+  .glass-control::after{display:none}
+  .glass-control.mobile-selected{border-color:#b0ffdf;box-shadow:inset 0 0 70px #8fffd52c,0 0 38px #8fffd549,0 12px 28px #0004;background-color:#172e35}
+  .glass-control{transition:background-color .5s,border-color .5s,box-shadow .5s}
+  #detail-dialog.mobile-card-open{background-color:#172e35;border-color:#b0ffdf;box-shadow:inset 0 0 70px #8fffd518,0 0 38px #8fffd549,0 30px 100px #0008}
+  #detail-dialog.mobile-card-open .dialog-top{background:transparent}
   .mobile-surface{overflow:hidden}
   .mobile-surface::before{content:'';position:absolute;inset:0;border-radius:inherit;pointer-events:none;z-index:1;background:linear-gradient(115deg,transparent 20%,#a2ffe900 38%,#baffea16 49%,#baffea00 61%,transparent 80%);transform:translateX(-100%);animation:phone-glass-shimmer 7s ease-in-out infinite;animation-play-state:paused}
   .mobile-surface.mobile-lit::before{animation-play-state:running}
