@@ -148,3 +148,74 @@ mapNodes.forEach(node=>{
   node.addEventListener('focus',updateMap);
   node.addEventListener('blur',()=>{queueMicrotask(updateMap);});
 });
+
+// Mobile lighting supplements hover without capturing gestures or delaying clicks.
+// Only visible surfaces are measured, at most once per animation frame.
+(()=>{
+  const phone=matchMedia('(max-width:600px)');
+  const reduced=matchMedia('(prefers-reduced-motion: reduce)');
+  const surfaces=[...document.querySelectorAll('.experience-card,.skill-card,.project-card,.internship-card,.certifications button')];
+  const visible=new Set();
+  let observer,frame=0,touched=null,releaseTimer;
+  function paint(){
+    frame=0;
+    if(!phone.matches||reduced.matches||document.hidden)return;
+    const height=window.innerHeight;
+    visible.forEach(card=>{
+      if(card===touched)return;
+      const rect=card.getBoundingClientRect();
+      const progress=Math.max(0,Math.min(1,(height-rect.top)/(height+rect.height)));
+      card.style.setProperty('--glow-x',`${20+progress*60}%`);
+      card.style.setProperty('--glow-y',`${progress*100}%`);
+    });
+  }
+  function schedule(){if(phone.matches&&!reduced.matches&&!frame)frame=requestAnimationFrame(paint);}
+  function release(){
+    clearTimeout(releaseTimer);
+    if(touched)touched.classList.remove('mobile-touch');
+    touched=null;
+    schedule();
+  }
+  function configure(){
+    observer?.disconnect();visible.clear();release();
+    cancelAnimationFrame(frame);frame=0;
+    surfaces.forEach(card=>{
+      card.classList.remove('mobile-lit','mobile-surface');
+      card.style.removeProperty('--glow-x');card.style.removeProperty('--glow-y');
+    });
+    if(!phone.matches)return;
+    surfaces.forEach(card=>card.classList.add('mobile-surface'));
+    if(!('IntersectionObserver' in window))return;
+    observer=new IntersectionObserver(entries=>{
+      entries.forEach(({target,isIntersecting})=>{
+        target.classList.toggle('mobile-lit',isIntersecting);
+        if(isIntersecting)visible.add(target);else visible.delete(target);
+      });schedule();
+    },{rootMargin:'-78px 0px 0px',threshold:0});
+    surfaces.forEach(card=>observer.observe(card));
+  }
+  function touchLight(event){
+    if(!phone.matches||event.pointerType!=='touch')return;
+    const control=event.target.closest('.glass-control');
+    if(!control)return;
+    if(touched!==control){release();touched=control;}
+    clearTimeout(releaseTimer);
+    control.classList.add('mobile-touch');
+    if(!reduced.matches){
+      const rect=control.getBoundingClientRect();
+      control.style.setProperty('--glow-x',`${event.clientX-rect.left}px`);
+      control.style.setProperty('--glow-y',`${event.clientY-rect.top}px`);
+    }
+  }
+  document.addEventListener('pointerdown',touchLight,{passive:true});
+  document.addEventListener('pointermove',touchLight,{passive:true});
+  ['pointerup','pointercancel'].forEach(type=>document.addEventListener(type,()=>{
+    if(touched)releaseTimer=setTimeout(release,650);
+  },{passive:true}));
+  window.addEventListener('scroll',schedule,{passive:true});
+  window.addEventListener('resize',schedule,{passive:true});
+  document.addEventListener('visibilitychange',()=>{if(document.hidden)release();else schedule();});
+  phone.addEventListener('change',configure);
+  reduced.addEventListener('change',configure);
+  configure();
+})();
