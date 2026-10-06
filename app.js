@@ -249,8 +249,9 @@ mapNodes.forEach(node=>{
       }
       card.style.setProperty('--stack-transform',`translate(${x}px,${y}px) scale(${scale}) rotate(${angle}deg)`);
       card.style.setProperty('--stack-order',String(order));
-      card.style.setProperty('--glass-shift',`${Math.min(rank,2)*7}px`);
-      card.style.setProperty('--glass-light',String(.85-Math.min(rank,2)*.12));
+      const lightDepth=mix(Math.min(rank,2),Math.min(targetRank,2));
+      card.style.setProperty('--glass-shift',`${lightDepth*7}px`);
+      card.style.setProperty('--glass-light',String(.85-lightDepth*.12));
       card.classList.toggle('stack-front',i===front);
       // Preserve the gesture target while a finger is held on the deck.
       card.inert=i!==(deck.dragging?deck.index:front);
@@ -351,6 +352,12 @@ mapNodes.forEach(node=>{
       const stage=element('div','','deck-stage'),nav=element('div','','deck-navigation');
       nav.setAttribute('aria-label',label+' card navigation');
       const prev=element('button','←'),next=element('button','→'),count=element('span','');
+      [[prev,'M16 10H4M9 5l-5 5 5 5'],[next,'M4 10h12M11 5l5 5-5 5']].forEach(([button,d])=>{
+        const icon=document.createElementNS('http://www.w3.org/2000/svg','svg');
+        icon.setAttribute('viewBox','0 0 20 20');icon.setAttribute('aria-hidden','true');
+        const path=document.createElementNS('http://www.w3.org/2000/svg','path');path.setAttribute('d',d);
+        icon.append(path);button.replaceChildren(icon);
+      });
       prev.type=next.type='button';prev.setAttribute('aria-label','Previous '+label+' card');next.setAttribute('aria-label','Next '+label+' card');
       count.setAttribute('aria-live','polite');count.setAttribute('aria-atomic','true');
       nav.append(prev,count,next);stage.append(nav);host.append(stage);
