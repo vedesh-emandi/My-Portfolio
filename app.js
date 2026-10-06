@@ -234,6 +234,7 @@ mapNodes.forEach(node=>{
         const relative=i-progress,behind=clamp(relative,0,2),leaving=clamp(-relative,0,1);
         card.style.setProperty('--stack-transform',`translateY(${behind*12-leaving*70}px) scale(${1-behind*.045-leaving*.025}) rotate(${leaving*-2}deg)`);
         card.style.setProperty('--stack-opacity',String(1-leaving));
+        card.style.setProperty('--stack-content',String(Math.max(0,1-Math.abs(relative)*2)));
         card.style.setProperty('--stack-order',String(deck.cards.length-i));
         card.style.setProperty('--glass-shift',`${clamp(relative,-1,1)*14}px`);
         card.style.setProperty('--glass-light',String(.85-behind*.15));
@@ -251,7 +252,7 @@ mapNodes.forEach(node=>{
       deck.cards.forEach((card,i)=>{
         deck.homes[i].replaceWith(card);card.inert=false;
         card.classList.remove('stack-card','stack-front');
-        ['--stack-transform','--stack-opacity','--stack-order','--glass-shift','--glass-light'].forEach(p=>card.style.removeProperty(p));
+        ['--stack-transform','--stack-opacity','--stack-content','--stack-order','--glass-shift','--glass-light'].forEach(p=>card.style.removeProperty(p));
       });
       deck.stage.remove();deck.host.classList.remove('mobile-deck');
       ['--deck-height','--stage-height','--card-height'].forEach(p=>deck.host.style.removeProperty(p));
