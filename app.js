@@ -285,7 +285,7 @@ mapNodes.forEach(node=>{
     if(target!==deck.index){deck.motionDirection=direction;animateTo(deck,target);}
   }
   function bindSwipe(deck){
-    let gesture=null,suppressUntil=0;
+    let gesture=null,suppressSwipeClick=false;
     function updateDrag(dx){
       const direction=dx<0?1:-1;
       deck.motionDirection=direction;
@@ -296,8 +296,12 @@ mapNodes.forEach(node=>{
       if(!reduced.matches&&!deck.frame)deck.frame=requestAnimationFrame(()=>{deck.frame=0;draw(deck,deck.pendingPosition);});
     }
     deck.stage.addEventListener('pointerdown',event=>{
-      if(!event.isPrimary||event.button!==0||deck.animating||!event.target.closest('.stack-front'))return;
-      gesture={id:event.pointerId,x:event.clientX,y:event.clientY,horizontal:false};
+      if(!event.isPrimary||event.button!==0)return;
+      // A new touch is deliberate input, not the previous swipe's click.
+      // Never impose a timed lockout after the cards have settled.
+      suppressSwipeClick=false;
+      if(deck.animating||!event.target.closest('.stack-front'))return;
+      gesture={id:event.pointerId,x:event.clientX,y:event.clientY,horizontal:false,card:event.target.closest('.stack-front')};
     },{passive:true});
     deck.stage.addEventListener('pointermove',event=>{
       if(!gesture||gesture.id!==event.pointerId)return;
@@ -310,23 +314,30 @@ mapNodes.forEach(node=>{
     },{passive:true});
     function cancelGesture(){
       const wasDragging=deck.dragging;gesture=null;
-      if(wasDragging){suppressUntil=performance.now()+650;animateTo(deck,deck.index);}
+      if(wasDragging){suppressSwipeClick=true;animateTo(deck,deck.index);}
     }
     deck.stage.addEventListener('pointerup',event=>{
       if(!gesture||gesture.id!==event.pointerId)return;
-      const dx=event.clientX-gesture.x,dy=event.clientY-gesture.y,horizontal=gesture.horizontal;
+      const dx=event.clientX-gesture.x,dy=event.clientY-gesture.y,horizontal=gesture.horizontal,pressedCard=gesture.card;
       gesture=null;
       if(horizontal){
-        suppressUntil=performance.now()+650;
+        suppressSwipeClick=true;
         const commit=Math.abs(dx)>=45&&Math.abs(dx)>Math.abs(dy)*1.25;
         animateTo(deck,deck.index+(commit?(dx<0?1:-1):0));
       }
       if(deck.stage.hasPointerCapture(event.pointerId))deck.stage.releasePointerCapture(event.pointerId);
+      // Activate a completed touch tap immediately; absorb its later native
+      // click so details open exactly once. Mouse and keyboard retain click.
+      if(!horizontal&&event.pointerType==='touch'&&!deck.animating&&Math.abs(dx)<=10&&Math.abs(dy)<=10&&pressedCard.classList.contains('stack-front')){
+        pressedCard.click();suppressSwipeClick=true;
+      }
     });
     deck.stage.addEventListener('pointercancel',cancelGesture);
     deck.stage.addEventListener('lostpointercapture',event=>{if(event.target===deck.stage&&gesture)cancelGesture();});
     deck.stage.addEventListener('click',event=>{
-      if((performance.now()<suppressUntil||deck.animating||deck.dragging)&&!event.target.closest('.deck-navigation')){
+      const swipeClick=suppressSwipeClick&&event.detail>0;
+      suppressSwipeClick=false;
+      if((swipeClick||deck.animating||deck.dragging)&&!event.target.closest('.deck-navigation')){
         event.preventDefault();event.stopPropagation();
       }
     },true);
