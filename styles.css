@@ -222,3 +222,13 @@ html{scrollbar-gutter:stable}
 
 .footer-email-row>a{margin-left:0!important}
 @media(max-width:600px){.footer-email-row{justify-content:flex-start;gap:14px}.contact-links a.footer-action{height:48px;padding:10px;line-height:24px}}
+
+/* Matching desktop contact actions. */
+@media(min-width:601px){
+.footer-email-row{display:flex;align-items:center;gap:14px}
+#copy-email.glass-control{padding:10px 0;min-height:44px;border:0;border-radius:0;background:none;color:#9aacbf;box-shadow:none;backdrop-filter:none;-webkit-backdrop-filter:none;transform:none;font-size:12px;white-space:nowrap}
+#copy-email.glass-control::before,#copy-email.glass-control::after,#copy-email>span{display:none}
+#copy-email:focus-visible{outline:2px solid var(--mint);outline-offset:3px}
+.contact-links a.footer-action{display:inline-flex;align-items:center;justify-content:center;gap:9px;height:51px;padding:13px 17px;border:1px solid #b4ffe13d;border-radius:10px;background:linear-gradient(155deg,#c8ffeb13,#4bc99f14);box-shadow:inset 0 1px 0 #e8fff92b,0 8px 24px #00000020;color:#d4f8e8;font-size:14px;line-height:23px}
+.footer-icon{display:block;flex:0 0 18px;width:18px;height:18px;color:var(--mint)}
+}
