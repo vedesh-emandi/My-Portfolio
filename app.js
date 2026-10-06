@@ -168,7 +168,7 @@ mapNodes.forEach(node=>{
     if(!phone.matches||reduced.matches||document.hidden||dialog.open)return;
     const height=window.innerHeight;
     // Separate geometry reads from writes to keep swipes responsive.
-    const updates=[...visible].map(card=>{
+    const updates=[...visible].filter(card=>!card.classList.contains('stack-card')).map(card=>{
       const rect=card.getBoundingClientRect();
       const lift=parseFloat(card.style.getPropertyValue('--glass-lift'))||0;
       const scale=parseFloat(card.style.getPropertyValue('--glass-scale'))||1;
@@ -215,4 +215,89 @@ mapNodes.forEach(node=>{
   phone.addEventListener('change',configure);
   reduced.addEventListener('change',configure);
   configure();
+})();
+
+// Move the original cards into temporary mobile decks; restore their exact homes
+// for desktop, reduced motion, or a viewport too short for readable full cards.
+(()=>{
+  const phone=matchMedia('(min-width:350px) and (max-width:600px) and (min-height:680px)');
+  const reduced=matchMedia('(prefers-reduced-motion: reduce)');
+  const groups=[['.skills-grid','.skill-card','Toolkit'],['.work-grid','.project-card,.internship-card','Selected work'],['.certifications','button[data-detail]','Certifications']];
+  let decks=[],frame=0,lastWidth=0;
+  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+  function render(){
+    frame=0;if(dialog.open||document.hidden)return;
+    const positions=decks.map(deck=>({deck,progress:clamp((96-deck.host.getBoundingClientRect().top)/deck.step,0,deck.cards.length-1)}));
+    positions.forEach(({deck,progress})=>{
+      const active=Math.min(deck.cards.length-1,Math.floor(progress+.5));
+      deck.cards.forEach((card,i)=>{
+        const relative=i-progress,behind=clamp(relative,0,2),leaving=clamp(-relative,0,1);
+        card.style.setProperty('--stack-transform',`translateY(${behind*12-leaving*70}px) scale(${1-behind*.045-leaving*.025}) rotate(${leaving*-2}deg)`);
+        card.style.setProperty('--stack-opacity',String(1-leaving));
+        card.style.setProperty('--stack-order',String(deck.cards.length-i));
+        card.style.setProperty('--glass-shift',`${clamp(relative,-1,1)*14}px`);
+        card.style.setProperty('--glass-light',String(.85-behind*.15));
+        card.classList.toggle('stack-front',i===active);
+        card.inert=i!==active;
+      });
+      deck.index=active;deck.count.textContent=`${active+1} of ${deck.cards.length} · Scroll to explore`;
+      deck.prev.disabled=active===0;deck.next.disabled=active===deck.cards.length-1;
+    });
+  }
+  function schedule(){if(decks.length&&!frame)frame=requestAnimationFrame(render);}
+  function restore(){
+    cancelAnimationFrame(frame);frame=0;
+    decks.forEach(deck=>{
+      deck.cards.forEach((card,i)=>{
+        deck.homes[i].replaceWith(card);card.inert=false;
+        card.classList.remove('stack-card','stack-front');
+        ['--stack-transform','--stack-opacity','--stack-order','--glass-shift','--glass-light'].forEach(p=>card.style.removeProperty(p));
+      });
+      deck.stage.remove();deck.host.classList.remove('mobile-deck');
+      ['--deck-height','--stage-height','--card-height'].forEach(p=>deck.host.style.removeProperty(p));
+      deck.internships?.removeAttribute('hidden');
+    });decks=[];
+  }
+  function configure(force=false){
+    const eligible=phone.matches&&!reduced.matches;
+    if(!force&&innerWidth===lastWidth&&eligible===!!decks.length)return;
+    lastWidth=innerWidth;restore();if(!eligible)return;
+    groups.forEach(([selector,cardSelector,label])=>{
+      const host=document.querySelector(selector),cards=[...host.querySelectorAll(cardSelector)];
+      const homes=cards.map(card=>{const marker=document.createComment('card home');card.before(marker);return marker;});
+      const stage=document.createElement('div');stage.className='deck-stage';
+      const nav=document.createElement('div');nav.className='deck-navigation';nav.setAttribute('aria-label',label+' card navigation');
+      const prev=element('button','←'),next=element('button','→'),count=element('span','');
+      prev.type=next.type='button';prev.setAttribute('aria-label','Previous '+label+' card');next.setAttribute('aria-label','Next '+label+' card');
+      nav.append(prev,count,next);stage.append(nav);host.append(stage);
+      cards.forEach(card=>{stage.append(card);card.classList.add('stack-card');});
+      const internships=host.querySelector('.internships');if(internships)internships.hidden=true;
+      host.classList.add('mobile-deck');
+      // Measure real content at this width before fixing a shared card height.
+      cards.forEach(card=>card.style.height='auto');
+      const cardHeight=Math.ceil(Math.max(...cards.map(card=>card.scrollHeight),selector==='.certifications'?host.clientWidth:320));
+      cards.forEach(card=>card.style.removeProperty('height'));
+      const step=Math.max(320,Math.min(500,innerHeight*.55));
+      const deck={host,cards,homes,stage,prev,next,count,step,index:0,internships};decks.push(deck);
+      host.style.setProperty('--card-height',cardHeight+'px');
+      host.style.setProperty('--stage-height',(cardHeight+90)+'px');
+      host.style.setProperty('--deck-height',(cardHeight+90+(cards.length-1)*step)+'px');
+      const navigate=direction=>{
+        const index=clamp(deck.index+direction,0,cards.length-1);
+        window.scrollTo({top:scrollY+host.getBoundingClientRect().top-96+index*step,behavior:'smooth'});
+      };
+      prev.addEventListener('click',()=>navigate(-1));next.addEventListener('click',()=>navigate(1));
+      if(cardHeight+190>innerHeight)deck.tooTall=true;
+    });
+    if(decks.some(deck=>deck.tooTall)){restore();return;}
+    render();
+  }
+  window.addEventListener('scroll',schedule,{passive:true});
+  window.addEventListener('resize',()=>configure(),{passive:true});
+  phone.addEventListener('change',()=>configure(true));
+  reduced.addEventListener('change',()=>configure(true));
+  dialog.addEventListener('close',schedule);
+  document.addEventListener('visibilitychange',schedule);
+  document.fonts.ready.then(()=>configure(true));
+  configure(true);
 })();

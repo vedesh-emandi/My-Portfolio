@@ -154,3 +154,37 @@ html{scrollbar-gutter:stable}
   .mobile-surface::before{transform:none;opacity:.65}
   .glass-control::after{opacity:.2}
 }
+
+/* A scroll-driven deck, enabled only when every card fits the phone viewport. */
+@media(max-width:600px){
+  .certifications button.glass-control{min-height:280px;aspect-ratio:1.12;display:flex;flex-direction:column;align-items:flex-start;justify-content:space-between;padding:26px;text-align:left}
+  .certifications strong{font-size:27px;line-height:1.2}
+  .certifications small{font-size:14px;margin-top:14px}
+  .certifications .cert-plus{margin-left:0;align-self:flex-end}
+  .mobile-deck{display:block;position:relative;height:var(--deck-height);isolation:isolate}
+  .deck-stage{position:sticky;top:96px;height:var(--stage-height);perspective:1200px}
+  .deck-navigation{height:38px;display:flex;align-items:center;justify-content:space-between;gap:12px;color:#b6d5cc;font-size:12px;letter-spacing:.5px}
+  .deck-navigation button{width:44px;height:36px;border:1px solid #8fffd545;border-radius:10px;background:#14242e;color:#c9ffeb}
+  .deck-navigation button:disabled{opacity:.3;cursor:default}
+  .certifications .deck-navigation button{width:44px;flex:0 0 44px;min-height:36px;padding:0;margin:0;display:block}
+  .deck-navigation>span{white-space:nowrap;font-size:11px}
+  .deck-stage .stack-card{position:absolute;top:52px;left:0;width:100%;height:var(--card-height);margin:0;min-height:0;translate:none;scale:none;transform:var(--stack-transform)!important;opacity:var(--stack-opacity,1)!important;z-index:var(--stack-order);transform-origin:50% 95%;transition:box-shadow .4s,border-color .4s,background-color .4s;background-color:#13232e;backdrop-filter:none;-webkit-backdrop-filter:none;pointer-events:none;will-change:transform,opacity}
+  .deck-stage .stack-card.stack-front{pointer-events:auto}
+  .mobile-deck .deck-stage .stack-card{background-color:#13232e}
+  .deck-stage .stack-card.mobile-selected{background-color:#172e35}
+  .deck-stage .skill-card{display:flex;flex-direction:column;justify-content:space-between}
+  .deck-stage .card-index{width:100%}
+  .deck-stage .skill-icon{margin:15px 0}
+  .deck-stage .card-caption{width:100%}
+  .deck-stage .internship-card{display:flex;flex-direction:column;justify-content:space-between}
+  .deck-stage .project-visual{height:115px}
+  .deck-stage .project-visual .wave{height:55px;transform:scaleY(.5)}
+  .deck-stage .visual-top{top:12px;font-size:8px}
+  .deck-stage .visual-caption{bottom:10px;font-size:8px}
+  .deck-stage .project-body{padding:20px}
+  .deck-stage .project-body h3{font-size:28px;margin:9px 0}
+  .deck-stage .project-body p{font-size:14px;margin:10px 0 16px}
+  .deck-stage .project-bottom{width:100%}
+  .mobile-deck>.internships{display:none}
+  .certifications.mobile-deck>.eyebrow{position:absolute;top:-34px;margin:0}
+}
