@@ -218,26 +218,40 @@ mapNodes.forEach(node=>{
 })();
 
 // Move the original cards into temporary mobile decks; restore their exact homes
-// for desktop, reduced motion, or a viewport too short for readable full cards.
+// for desktop. Compact phones keep decks; reduced motion uses instant card changes.
 (()=>{
-  const phone=matchMedia('(min-width:350px) and (max-width:600px) and (min-height:680px)');
+  const phone=matchMedia('(max-width:600px)');
   const reduced=matchMedia('(prefers-reduced-motion: reduce)');
   const groups=[['.skills-grid','.skill-card','Toolkit'],['.work-grid','.project-card,.internship-card','Selected work'],['.certifications','button[data-detail]','Certifications']];
   let decks=[],frame=0,lastWidth=0;
   const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
   function render(){
     frame=0;if(dialog.open||document.hidden)return;
-    const positions=decks.map(deck=>({deck,progress:clamp((96-deck.host.getBoundingClientRect().top)/deck.step,0,deck.cards.length-1)}));
+    const positions=decks.map(deck=>{
+      deck.top=Math.max(84,innerHeight-deck.cardHeight-90-16);
+      deck.host.style.setProperty('--deck-top',deck.top+'px');
+      return {deck,progress:clamp((deck.top-deck.host.getBoundingClientRect().top)/deck.step,0,deck.cards.length-1)};
+    });
     positions.forEach(({deck,progress})=>{
-      const active=Math.min(deck.cards.length-1,Math.floor(progress+.5));
+      // The front card lifts, changes layer behind the deck, then settles at the back.
+      // All surfaces stay fully opaque; scrolling backwards reverses the same path.
+      const position=reduced.matches?Math.round(progress):progress;
+      const base=Math.floor(position),fraction=position-base;
+      const t=fraction*fraction*(3-2*fraction);
+      const active=Math.min(deck.cards.length-1,base+(t>=.5?1:0));
       deck.cards.forEach((card,i)=>{
-        const relative=i-progress,behind=clamp(relative,0,2),leaving=clamp(-relative,0,1);
-        card.style.setProperty('--stack-transform',`translateY(${behind*12-leaving*70}px) scale(${1-behind*.045-leaving*.025}) rotate(${leaving*-2}deg)`);
-        card.style.setProperty('--stack-opacity',String(1-leaving));
-        card.style.setProperty('--stack-content',String(Math.max(0,1-Math.abs(relative)*2)));
-        card.style.setProperty('--stack-order',String(deck.cards.length-i));
-        card.style.setProperty('--glass-shift',`${clamp(relative,-1,1)*14}px`);
-        card.style.setProperty('--glass-light',String(.85-behind*.15));
+        const rank=(i-base+deck.cards.length)%deck.cards.length;
+        let depth=Math.min(2,Math.max(0,rank-t)),x=0,y=depth*11,angle=0,order=deck.cards.length-rank;
+        if(rank===0&&fraction>0){
+          depth=Math.min(2,deck.cards.length-1)*t;
+          x=16*Math.sin(Math.PI*t);y=depth*11-76*Math.sin(Math.PI*t);
+          angle=-5*Math.sin(Math.PI*t);order=t<.5?deck.cards.length+1:0;
+        }
+        card.style.setProperty('--stack-transform',`translate(${x}px,${y}px) scale(${1-depth*.045}) rotate(${angle}deg)`);
+        card.style.setProperty('--stack-opacity','1');
+        card.style.setProperty('--stack-order',String(order));
+        card.style.setProperty('--glass-shift',`${depth*7}px`);
+        card.style.setProperty('--glass-light',String(.85-depth*.12));
         card.classList.toggle('stack-front',i===active);
         card.inert=i!==active;
       });
@@ -255,13 +269,13 @@ mapNodes.forEach(node=>{
         ['--stack-transform','--stack-opacity','--stack-content','--stack-order','--glass-shift','--glass-light'].forEach(p=>card.style.removeProperty(p));
       });
       deck.stage.remove();deck.host.classList.remove('mobile-deck');
-      ['--deck-height','--stage-height','--card-height'].forEach(p=>deck.host.style.removeProperty(p));
+      ['--deck-height','--stage-height','--card-height','--deck-top'].forEach(p=>deck.host.style.removeProperty(p));
       deck.internships?.removeAttribute('hidden');
     });decks=[];
   }
   function configure(force=false){
-    const eligible=phone.matches&&!reduced.matches;
-    if(!force&&innerWidth===lastWidth&&eligible===!!decks.length)return;
+    const eligible=phone.matches;
+    if(!force&&innerWidth===lastWidth&&eligible===!!decks.length){schedule();return;}
     lastWidth=innerWidth;restore();if(!eligible)return;
     groups.forEach(([selector,cardSelector,label])=>{
       const host=document.querySelector(selector),cards=[...host.querySelectorAll(cardSelector)];
@@ -276,21 +290,22 @@ mapNodes.forEach(node=>{
       host.classList.add('mobile-deck');
       // Measure real content at this width before fixing a shared card height.
       cards.forEach(card=>card.style.height='auto');
-      const cardHeight=Math.ceil(Math.max(...cards.map(card=>card.scrollHeight),selector==='.certifications'?host.clientWidth:320));
+      const naturalHeight=Math.ceil(Math.max(...cards.map(card=>card.scrollHeight),selector==='.certifications'?host.clientWidth:300));
+      const cardHeight=Math.min(naturalHeight,Math.max(230,innerHeight-190));
       cards.forEach(card=>card.style.removeProperty('height'));
       const step=Math.max(320,Math.min(500,innerHeight*.55));
-      const deck={host,cards,homes,stage,prev,next,count,step,index:0,internships};decks.push(deck);
+      const deck={host,cards,homes,stage,prev,next,count,step,index:0,internships,cardHeight,top:84};decks.push(deck);
       host.style.setProperty('--card-height',cardHeight+'px');
       host.style.setProperty('--stage-height',(cardHeight+90)+'px');
       host.style.setProperty('--deck-height',(cardHeight+90+(cards.length-1)*step)+'px');
       const navigate=direction=>{
         const index=clamp(deck.index+direction,0,cards.length-1);
-        window.scrollTo({top:scrollY+host.getBoundingClientRect().top-96+index*step,behavior:'smooth'});
+        window.scrollTo({top:scrollY+host.getBoundingClientRect().top-deck.top+index*step,behavior:reduced.matches?'instant':'smooth'});
       };
       prev.addEventListener('click',()=>navigate(-1));next.addEventListener('click',()=>navigate(1));
-      if(cardHeight+190>innerHeight)deck.tooTall=true;
+
     });
-    if(decks.some(deck=>deck.tooTall)){restore();return;}
+
     render();
   }
   window.addEventListener('scroll',schedule,{passive:true});
