@@ -223,7 +223,7 @@ mapNodes.forEach(node=>{
   const reduced=matchMedia('(prefers-reduced-motion: reduce)');
   const groups=[['.skills-grid','.skill-card','Toolkit'],['.work-grid','.project-card,.internship-card','Selected work'],['.certifications','button[data-detail]','Certifications']];
   let decks=[],lastWidth=0;
-  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+  const wrap=(index,count)=>((index%count)+count)%count;
   function pose(rank){
     if(rank<=0)return {x:0,y:0,scale:1,angle:0};
     const depth=Math.min(rank,2),side=rank%2? -1:1;
@@ -233,9 +233,9 @@ mapNodes.forEach(node=>{
     deck.position=position;
     const reverse=deck.motionDirection===-1;
     const base=reverse?Math.ceil(position):Math.floor(position),t=reverse?base-position:position-base;
-    const front=clamp(base+(t>=.5?(reverse?-1:1):0),0,deck.cards.length-1);
+    const front=wrap(base+(t>=.5?(reverse?-1:1):0),deck.cards.length);
     deck.cards.forEach((card,i)=>{
-      const rank=(i-base+deck.cards.length)%deck.cards.length;
+      const rank=wrap(i-base,deck.cards.length);
       const targetRank=reverse?(rank+1)%deck.cards.length:(rank===0?deck.cards.length-1:rank-1);
       const from=pose(rank),to=pose(targetRank);
       const mix=(a,b)=>a+(b-a)*t;
@@ -258,9 +258,10 @@ mapNodes.forEach(node=>{
     });
   }
   function settle(deck){
+    deck.index=wrap(deck.index,deck.cards.length);
     deck.animating=false;deck.dragging=false;deck.frame=0;draw(deck,deck.index);
     deck.count.textContent=`${deck.index+1} of ${deck.cards.length} · Swipe to explore`;
-    deck.prev.disabled=deck.index===0;deck.next.disabled=deck.index===deck.cards.length-1;
+    deck.prev.disabled=deck.next.disabled=false;
   }
   function animateTo(deck,target){
     cancelAnimationFrame(deck.frame);deck.dragging=false;
@@ -279,7 +280,8 @@ mapNodes.forEach(node=>{
   }
   function navigate(deck,direction){
     if(deck.animating||deck.dragging||dialog.open)return;
-    const target=clamp(deck.index+direction,0,deck.cards.length-1);
+    // Animate one adjacent step through either end, then normalize at rest.
+    const target=deck.index+direction;
     if(target!==deck.index){deck.motionDirection=direction;animateTo(deck,target);}
   }
   function bindSwipe(deck){
@@ -287,11 +289,10 @@ mapNodes.forEach(node=>{
     function updateDrag(dx){
       const direction=dx<0?1:-1;
       deck.motionDirection=direction;
-      const allowed=deck.index+direction>=0&&deck.index+direction<deck.cards.length;
       // The first half follows the finger approximately one-to-one. Release
       // completes the trip behind the deck, or smoothly returns a short drag.
       const amount=Math.min(.48,Math.abs(dx)/(deck.cardWidth*Math.PI));
-      deck.pendingPosition=allowed?deck.index+direction*amount:deck.index;
+      deck.pendingPosition=deck.index+direction*amount;
       if(!reduced.matches&&!deck.frame)deck.frame=requestAnimationFrame(()=>{deck.frame=0;draw(deck,deck.pendingPosition);});
     }
     deck.stage.addEventListener('pointerdown',event=>{
@@ -318,7 +319,7 @@ mapNodes.forEach(node=>{
       if(horizontal){
         suppressUntil=performance.now()+650;
         const commit=Math.abs(dx)>=45&&Math.abs(dx)>Math.abs(dy)*1.25;
-        animateTo(deck,clamp(deck.index+(commit?(dx<0?1:-1):0),0,deck.cards.length-1));
+        animateTo(deck,deck.index+(commit?(dx<0?1:-1):0));
       }
       if(deck.stage.hasPointerCapture(event.pointerId))deck.stage.releasePointerCapture(event.pointerId);
     });
