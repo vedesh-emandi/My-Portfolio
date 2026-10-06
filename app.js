@@ -224,47 +224,75 @@ mapNodes.forEach(node=>{
   const groups=[['.skills-grid','.skill-card','Toolkit'],['.work-grid','.project-card,.internship-card','Selected work'],['.certifications','button[data-detail]','Certifications']];
   let decks=[],lastWidth=0;
   const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+  function pose(rank){
+    if(rank<=0)return {x:0,y:0,scale:1,angle:0};
+    const depth=Math.min(rank,2),side=rank%2? -1:1;
+    return {x:side*7,y:depth*10,scale:1-depth*.035,angle:side*(3+depth)};
+  }
   function draw(deck,position){
-    const base=Math.floor(position),fraction=position-base,t=fraction*fraction*(3-2*fraction);
-    const front=Math.min(deck.cards.length-1,base+(t>=.5?1:0));
+    deck.position=position;
+    const reverse=deck.motionDirection===-1;
+    const base=reverse?Math.ceil(position):Math.floor(position),t=reverse?base-position:position-base;
+    const front=clamp(base+(t>=.5?(reverse?-1:1):0),0,deck.cards.length-1);
     deck.cards.forEach((card,i)=>{
       const rank=(i-base+deck.cards.length)%deck.cards.length;
-      let depth=Math.min(2,Math.max(0,rank-t)),x=0,y=depth*11,angle=0,order=deck.cards.length-rank;
-      if(rank===0&&fraction>0){
-        depth=Math.min(2,deck.cards.length-1)*t;
-        x=20*Math.sin(Math.PI*t);y=depth*11-30*Math.sin(Math.PI*t);
-        angle=-5*Math.sin(Math.PI*t);order=t<.5?deck.cards.length+1:0;
+      const targetRank=reverse?(rank+1)%deck.cards.length:(rank===0?deck.cards.length-1:rank-1);
+      const from=pose(rank),to=pose(targetRank);
+      const mix=(a,b)=>a+(b-a)*t;
+      let x=mix(from.x,to.x),y=mix(from.y,to.y),scale=mix(from.scale,to.scale),angle=mix(from.angle,to.angle),order=deck.cards.length-(t<.5?rank:targetRank);
+      if(rank===0&&t>0){
+        // Slide in the finger's direction, then tuck behind the new front.
+        const arc=Math.sin(Math.PI*t);
+        x+=(reverse?1:-1)*deck.cardWidth*1.04*arc;
+        angle+=(reverse?1:-1)*9*arc;y-=8*arc;
+        order=t<.5?deck.cards.length+1:deck.cards.length-targetRank;
       }
-      card.style.setProperty('--stack-transform',`translate(${x}px,${y}px) scale(${1-depth*.045}) rotate(${angle}deg)`);
+      card.style.setProperty('--stack-transform',`translate(${x}px,${y}px) scale(${scale}) rotate(${angle}deg)`);
       card.style.setProperty('--stack-order',String(order));
-      card.style.setProperty('--glass-shift',`${depth*7}px`);
-      card.style.setProperty('--glass-light',String(.85-depth*.12));
+      card.style.setProperty('--glass-shift',`${Math.min(rank,2)*7}px`);
+      card.style.setProperty('--glass-light',String(.85-Math.min(rank,2)*.12));
       card.classList.toggle('stack-front',i===front);
-      card.inert=i!==front;
+      // Preserve the gesture target while a finger is held on the deck.
+      card.inert=i!==(deck.dragging?deck.index:front);
     });
   }
   function settle(deck){
-    deck.animating=false;deck.frame=0;draw(deck,deck.index);
+    deck.animating=false;deck.dragging=false;deck.frame=0;draw(deck,deck.index);
     deck.count.textContent=`${deck.index+1} of ${deck.cards.length} · Swipe to explore`;
     deck.prev.disabled=deck.index===0;deck.next.disabled=deck.index===deck.cards.length-1;
   }
-  function navigate(deck,direction){
-    if(deck.animating||dialog.open)return;
-    const target=clamp(deck.index+direction,0,deck.cards.length-1);
-    if(target===deck.index)return;
+  function animateTo(deck,target){
+    cancelAnimationFrame(deck.frame);deck.dragging=false;
     if(reduced.matches){deck.index=target;settle(deck);return;}
-    const start=deck.index,started=performance.now();deck.animating=true;
+    const start=deck.position,started=performance.now();
+    const duration=Math.max(180,Math.abs(target-start)*520);deck.animating=true;
     deck.prev.disabled=deck.next.disabled=true;
     function tick(now){
-      const progress=Math.min(1,(now-started)/480);
-      draw(deck,start+(target-start)*progress);
+      const progress=Math.min(1,(now-started)/duration);
+      const eased=1-Math.pow(1-progress,3);
+      draw(deck,start+(target-start)*eased);
       if(progress<1)deck.frame=requestAnimationFrame(tick);
       else{deck.index=target;settle(deck);}
     }
     deck.frame=requestAnimationFrame(tick);
   }
+  function navigate(deck,direction){
+    if(deck.animating||deck.dragging||dialog.open)return;
+    const target=clamp(deck.index+direction,0,deck.cards.length-1);
+    if(target!==deck.index){deck.motionDirection=direction;animateTo(deck,target);}
+  }
   function bindSwipe(deck){
     let gesture=null,suppressUntil=0;
+    function updateDrag(dx){
+      const direction=dx<0?1:-1;
+      deck.motionDirection=direction;
+      const allowed=deck.index+direction>=0&&deck.index+direction<deck.cards.length;
+      // The first half follows the finger approximately one-to-one. Release
+      // completes the trip behind the deck, or smoothly returns a short drag.
+      const amount=Math.min(.48,Math.abs(dx)/(deck.cardWidth*Math.PI));
+      deck.pendingPosition=allowed?deck.index+direction*amount:deck.index;
+      if(!reduced.matches&&!deck.frame)deck.frame=requestAnimationFrame(()=>{deck.frame=0;draw(deck,deck.pendingPosition);});
+    }
     deck.stage.addEventListener('pointerdown',event=>{
       if(!event.isPrimary||event.button!==0||deck.animating||!event.target.closest('.stack-front'))return;
       gesture={id:event.pointerId,x:event.clientX,y:event.clientY,horizontal:false};
@@ -273,24 +301,30 @@ mapNodes.forEach(node=>{
       if(!gesture||gesture.id!==event.pointerId)return;
       const dx=event.clientX-gesture.x,dy=event.clientY-gesture.y;
       if(!gesture.horizontal&&Math.abs(dy)>12&&Math.abs(dy)>Math.abs(dx)){gesture=null;return;}
-      if(Math.abs(dx)>12&&Math.abs(dx)>Math.abs(dy)*1.25){
-        gesture.horizontal=true;deck.stage.setPointerCapture(event.pointerId);
+      if(gesture.horizontal||(Math.abs(dx)>12&&Math.abs(dx)>Math.abs(dy)*1.25)){
+        gesture.horizontal=true;deck.dragging=true;
+        deck.stage.setPointerCapture(event.pointerId);updateDrag(dx);
       }
     },{passive:true});
+    function cancelGesture(){
+      const wasDragging=deck.dragging;gesture=null;
+      if(wasDragging){suppressUntil=performance.now()+650;animateTo(deck,deck.index);}
+    }
     deck.stage.addEventListener('pointerup',event=>{
       if(!gesture||gesture.id!==event.pointerId)return;
       const dx=event.clientX-gesture.x,dy=event.clientY-gesture.y,horizontal=gesture.horizontal;
       gesture=null;
       if(horizontal){
-        suppressUntil=performance.now()+800;
-        if(Math.abs(dx)>=45&&Math.abs(dx)>Math.abs(dy)*1.25)navigate(deck,dx<0?1:-1);
+        suppressUntil=performance.now()+650;
+        const commit=Math.abs(dx)>=45&&Math.abs(dx)>Math.abs(dy)*1.25;
+        animateTo(deck,clamp(deck.index+(commit?(dx<0?1:-1):0),0,deck.cards.length-1));
       }
       if(deck.stage.hasPointerCapture(event.pointerId))deck.stage.releasePointerCapture(event.pointerId);
     });
-    deck.stage.addEventListener('pointercancel',()=>{gesture=null;});
-    deck.stage.addEventListener('lostpointercapture',event=>{if(event.target===deck.stage)gesture=null;});
+    deck.stage.addEventListener('pointercancel',cancelGesture);
+    deck.stage.addEventListener('lostpointercapture',event=>{if(event.target===deck.stage&&gesture)cancelGesture();});
     deck.stage.addEventListener('click',event=>{
-      if((performance.now()<suppressUntil||deck.animating)&&!event.target.closest('.deck-navigation')){
+      if((performance.now()<suppressUntil||deck.animating||deck.dragging)&&!event.target.closest('.deck-navigation')){
         event.preventDefault();event.stopPropagation();
       }
     },true);
@@ -326,7 +360,7 @@ mapNodes.forEach(node=>{
       cards.forEach(card=>card.style.height='auto');
       const cardHeight=Math.ceil(Math.max(...cards.map(card=>card.scrollHeight),selector==='.certifications'?host.clientWidth:300));
       cards.forEach(card=>card.style.removeProperty('height'));
-      const deck={host,cards,homes,stage,prev,next,count,index:selection.get(host)||0,internships,frame:0,animating:false};decks.push(deck);
+      const deck={host,cards,homes,stage,prev,next,count,index:selection.get(host)||0,internships,frame:0,animating:false,dragging:false,position:selection.get(host)||0,cardWidth:cards[0].offsetWidth};decks.push(deck);
       host.style.setProperty('--card-height',cardHeight+'px');host.style.setProperty('--stage-height',(cardHeight+88)+'px');
       prev.addEventListener('click',()=>navigate(deck,-1));next.addEventListener('click',()=>navigate(deck,1));
       bindSwipe(deck);settle(deck);
