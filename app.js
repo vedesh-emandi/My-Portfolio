@@ -155,26 +155,64 @@ mapNodes.forEach(node=>{
   node.addEventListener('blur',()=>{queueMicrotask(updateMap);});
 });
 
-// Keep the phone shimmer active only on visible cards. No touch-position light.
+// Scroll-linked phone refraction and depth; no pointer tracking or idle animation.
 (()=>{
   const phone=matchMedia('(max-width:600px)');
+  const reduced=matchMedia('(prefers-reduced-motion: reduce)');
   const surfaces=[...document.querySelectorAll('.experience-card,.skill-card,.project-card,.internship-card,.certifications button')];
-  let observer;
+  const visible=new Set();
+  let observer,frame=0;
+  const properties=['--glass-shift','--glass-lift','--glass-scale','--glass-light','--glass-shadow'];
+  function paint(){
+    frame=0;
+    if(!phone.matches||reduced.matches||document.hidden||dialog.open)return;
+    const height=window.innerHeight;
+    // Separate geometry reads from writes to keep swipes responsive.
+    const updates=[...visible].map(card=>{
+      const rect=card.getBoundingClientRect();
+      const lift=parseFloat(card.style.getPropertyValue('--glass-lift'))||0;
+      const scale=parseFloat(card.style.getPropertyValue('--glass-scale'))||1;
+      const top=rect.top-lift-card.offsetHeight*(1-scale)/2;
+      const entry=Math.max(0,Math.min(1,(height-top)/Math.min(height*.6,card.offsetHeight+100)));
+      const travel=Math.max(0,Math.min(1,(height-top)/(height+card.offsetHeight)));
+      return {card,entry,travel};
+    });
+    updates.forEach(({card,entry,travel})=>{
+      const depth=Math.sin(entry*Math.PI);
+      card.style.setProperty('--glass-lift',`${(-8*depth).toFixed(2)}px`);
+      card.style.setProperty('--glass-scale',(0.985+entry*.015).toFixed(4));
+      card.style.setProperty('--glass-shift',`${(-16+travel*32).toFixed(2)}px`);
+      card.style.setProperty('--glass-light',(.55+entry*.3).toFixed(3));
+      card.style.setProperty('--glass-shadow',`${(18+depth*10).toFixed(2)}px`);
+    });
+  }
+  function schedule(){if(phone.matches&&!reduced.matches&&!frame)frame=requestAnimationFrame(paint);}
   function configure(){
-    observer?.disconnect();
-    surfaces.forEach(card=>card.classList.remove('mobile-lit','mobile-surface'));
+    observer?.disconnect();visible.clear();cancelAnimationFrame(frame);frame=0;
+    surfaces.forEach(card=>{
+      card.classList.remove('mobile-lit','mobile-surface');
+      properties.forEach(property=>card.style.removeProperty(property));
+    });
     if(!phone.matches){
       document.querySelectorAll('.mobile-selected').forEach(card=>card.classList.remove('mobile-selected'));
       dialog.classList.remove('mobile-card-open');
       return;
     }
     surfaces.forEach(card=>card.classList.add('mobile-surface'));
-    if(!('IntersectionObserver' in window))return;
+    if(reduced.matches||!('IntersectionObserver' in window))return;
     observer=new IntersectionObserver(entries=>{
-      entries.forEach(({target,isIntersecting})=>target.classList.toggle('mobile-lit',isIntersecting));
-    },{rootMargin:'-78px 0px 0px',threshold:0});
+      entries.forEach(({target,isIntersecting})=>{
+        target.classList.toggle('mobile-lit',isIntersecting);
+        if(isIntersecting)visible.add(target);else visible.delete(target);
+      });schedule();
+    },{rootMargin:'-78px 0px 60px',threshold:0});
     surfaces.forEach(card=>observer.observe(card));
   }
+  window.addEventListener('scroll',schedule,{passive:true});
+  window.addEventListener('resize',schedule,{passive:true});
+  document.addEventListener('visibilitychange',schedule);
+  dialog.addEventListener('close',schedule);
   phone.addEventListener('change',configure);
+  reduced.addEventListener('change',configure);
   configure();
 })();
