@@ -232,3 +232,10 @@ html{scrollbar-gutter:stable}
 .contact-links a.footer-action{display:inline-flex;align-items:center;justify-content:center;gap:9px;height:51px;padding:13px 17px;border:1px solid #b4ffe13d;border-radius:10px;background:linear-gradient(155deg,#c8ffeb13,#4bc99f14);box-shadow:inset 0 1px 0 #e8fff92b,0 8px 24px #00000020;color:#d4f8e8;font-size:14px;line-height:23px}
 .footer-icon{display:block;flex:0 0 18px;width:18px;height:18px;color:var(--mint)}
 }
+
+@media(min-width:601px){
+.contact-links a.footer-action.glass-control:hover,.contact-links a.footer-action.glass-control:focus-visible{border-color:#b0ffdf88;box-shadow:inset 0 1px 0 #ecfff980,inset 0 -1px 0 #97ffd336,0 0 24px #6bfcc91c,0 12px 30px #00000035}
+#copy-email.glass-control{transition:color .22s}
+#copy-email.glass-control:hover,#copy-email.glass-control:focus-visible{color:var(--mint)}
+}
+@media(prefers-reduced-motion:reduce){#copy-email.glass-control{transition:none}}

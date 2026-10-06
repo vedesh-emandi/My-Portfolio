@@ -114,7 +114,7 @@ document.querySelectorAll('a[download]').forEach(link=>link.addEventListener('cl
   toast('Download requested — check your browser’s downloads.');
 }));
 // Local light follows the pointer without moving the button or its text.
-const glassControls=document.querySelectorAll('button,.button,.header-contact,.contact-option,a[download]');
+const glassControls=document.querySelectorAll('button,.button,.header-contact,.contact-option,a[download],.footer-action');
 function applyGlass(control){
   control.classList.add('glass-control');
   const positionGlow=event=>{
