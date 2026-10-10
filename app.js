@@ -397,8 +397,8 @@ mapNodes.forEach(node=>{
 })();
 
 // Draw moving gradient centers directly so clipped text repaints every frame.
-(()=>{
-  const accents=[...document.querySelectorAll('.hero h1 .gradient-text,.hero-description .hero-name')];
+document.querySelectorAll('.hero,#contact').forEach(section=>{
+  const accents=[...section.querySelectorAll('h1 .gradient-text,.hero-description .hero-name,.contact-grid h2 .gradient-text')];
   if(!accents.length)return;
   const reduced=matchMedia('(prefers-reduced-motion: reduce)');
   let points=[{x:0,y:20},{x:100,y:80},{x:50,y:50}],frame=0,visible=true;
@@ -429,6 +429,6 @@ mapNodes.forEach(node=>{
   }
   reduced.addEventListener('change',flow);
   document.addEventListener('visibilitychange',flow);
-  if('IntersectionObserver' in window){new IntersectionObserver(entries=>{const next=entries[0].isIntersecting;if(next!==visible){visible=next;flow();}}).observe(document.querySelector('.hero'));}
+  if('IntersectionObserver' in window){new IntersectionObserver(entries=>{const next=entries[0].isIntersecting;if(next!==visible){visible=next;flow();}}).observe(section);}
   flow();
-})();
+});
