@@ -396,33 +396,36 @@ mapNodes.forEach(node=>{
   configure(true);
 })();
 
-// Soft color pools follow fresh curved paths, shared by both hero accents.
+// Draw moving gradient centers directly so clipped text repaints every frame.
 (()=>{
   const accents=[...document.querySelectorAll('.hero h1 .gradient-text,.hero-description .hero-name')];
   if(!accents.length)return;
   const reduced=matchMedia('(prefers-reduced-motion: reduce)');
-  let points=[{x:0,y:20},{x:100,y:80},{x:50,y:50}],animations=[],visible=true,generation=0;
-  const randomPoint=()=>({x:Math.random()*100,y:Math.random()*100});
-  const position=list=>list.map(p=>p.x.toFixed(3)+'% '+p.y.toFixed(3)+'%').join(',');
-  function stop(){generation++;animations.forEach(a=>a.cancel());animations=[];}
-  async function flow(){
-    stop();
-    if(reduced.matches||document.hidden||!visible)return;
-    const run=generation;
-    while(run===generation){
-      const targets=points.map(p=>{let q=randomPoint();if(Math.hypot(q.x-p.x,q.y-p.y)<45)q={x:100-p.x,y:100-p.y};return q;});
-      const controls=points.map(randomPoint);
-      const frames=Array.from({length:15},(_,i)=>{
-        const t=i/14,u=1-t;
-        return {offset:t,backgroundPosition:position(points.map((p,j)=>({x:u*u*p.x+2*u*t*controls[j].x+t*t*targets[j].x,y:u*u*p.y+2*u*t*controls[j].y+t*t*targets[j].y})))};
-      });
-      animations=accents.map(el=>el.animate(frames,{duration:3500,easing:'ease-in-out',fill:'forwards'}));
-      try{await Promise.all(animations.map(a=>a.finished));}catch{return;}
-      if(run!==generation)return;
-      points=targets;
-      accents.forEach(el=>el.style.backgroundPosition=position(points));
-      animations.forEach(a=>a.cancel());animations=[];
+  let points=[{x:0,y:20},{x:100,y:80},{x:50,y:50}],frame=0,visible=true;
+  const colors=['#72ffd0','#63c5ff','#a09aff'];
+  const random=()=>Math.random()*100;
+  function paint(list){
+    const image=list.map((p,i)=>'radial-gradient(ellipse 52% 105% at '+p.x.toFixed(2)+'% '+p.y.toFixed(2)+'%, '+colors[i]+' 0%, '+colors[i]+'dd 24%, '+colors[i]+'00 78%)').join(',');
+    accents.forEach(el=>el.style.backgroundImage=image);
+  }
+  function flow(){
+    cancelAnimationFrame(frame);frame=0;
+    if(reduced.matches){paint([{x:0,y:20},{x:100,y:80},{x:50,y:50}]);return;}
+    if(document.hidden||!visible)return;
+    let start=performance.now(),from=points,targets,controls;
+    function path(){
+      targets=from.map(p=>({x:p.x<50?70+Math.random()*30:Math.random()*30,y:p.y<50?65+Math.random()*35:Math.random()*35}));
+      controls=from.map(()=>({x:random(),y:random()}));
     }
+    path();
+    function tick(now){
+      const progress=Math.min(1,(now-start)/3500),t=progress*progress*(3-2*progress),u=1-t;
+      points=from.map((p,i)=>({x:u*u*p.x+2*u*t*controls[i].x+t*t*targets[i].x,y:u*u*p.y+2*u*t*controls[i].y+t*t*targets[i].y}));
+      paint(points);
+      if(progress===1){from=points;start=now;path();}
+      frame=requestAnimationFrame(tick);
+    }
+    frame=requestAnimationFrame(tick);
   }
   reduced.addEventListener('change',flow);
   document.addEventListener('visibilitychange',flow);
