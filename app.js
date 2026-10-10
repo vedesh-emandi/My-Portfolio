@@ -66,8 +66,8 @@ function appendCourseGallery(content,d){
 }
 document.querySelectorAll('[data-detail]').forEach(button=>button.addEventListener('click',()=>{const d=details[button.dataset.detail];if(!d)return;previousFocus=button;document.querySelector('#detail-category').textContent=d.category;document.querySelector('#detail-number').textContent=d.number;document.querySelector('#detail-title').textContent=d.title;document.querySelector('#detail-subtitle').textContent=d.subtitle;const content=document.querySelector('#detail-content');content.replaceChildren(element('p',d.intro));dialog.classList.toggle('certificate-dialog',!!(d.certificate||d.certificates));if(d.certificate)appendCertificate(content,d);if(d.certificates)appendCourseGallery(content,d);if(d.heading)content.append(element('h3',d.heading));if(d.points){const list=document.createElement('ul');d.points.forEach(p=>list.append(element('li',p)));content.append(list);}if(d.tags){const tags=element('div','','tags');tags.style.marginTop='28px';d.tags.forEach(t=>tags.append(element('span',t)));content.append(tags);}previousOverflow=document.body.style.overflow;document.body.style.overflow='hidden';dialog.showModal();dialog.scrollTop=0;dialog.querySelector('.dialog-content').scrollTop=0;animateCardOpen(button);document.querySelector('.close-dialog').focus({preventScroll:true});}));
 let cardMotion;let cardClosing=false;
-function cardOrigin(source){
- const from=source.getBoundingClientRect(),to=dialog.getBoundingClientRect();
+function cardOrigin(source,target=dialog){
+ const from=source.getBoundingClientRect(),to=target.getBoundingClientRect();
  return `translate(${from.left+from.width/2-to.left-to.width/2}px,${from.top+from.height/2-to.top-to.height/2}px) scale(${Math.max(.12,Math.min(1,from.width/to.width))},${Math.max(.12,Math.min(1,from.height/to.height))}) perspective(1200px) rotateY(-18deg)`;
 }
 function animateCardOpen(source){
@@ -102,11 +102,31 @@ if('IntersectionObserver' in window&&!matchMedia('(prefers-reduced-motion: reduc
 
 const contactDialog=document.querySelector('#contact-dialog');
 const sayHello=document.querySelector('#say-hello');
-let contactOverflow='';let contactTrigger=sayHello;
-[sayHello,document.querySelector('#header-connect')].forEach(trigger=>trigger.addEventListener('click',()=>{contactTrigger=trigger;contactOverflow=document.body.style.overflow;document.body.style.overflow='hidden';contactDialog.showModal();document.querySelector('#close-contact').focus({preventScroll:true});}));
-document.querySelector('#close-contact').addEventListener('click',()=>contactDialog.close());
-contactDialog.addEventListener('click',e=>{if(e.target===contactDialog){const r=contactDialog.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)contactDialog.close();}});
-contactDialog.addEventListener('close',()=>{document.body.style.overflow=contactOverflow;contactTrigger.focus({preventScroll:true});});
+let contactOverflow='',contactTrigger=sayHello,contactMotion=null,contactClosing=false;
+function openContact(trigger){
+ if(contactDialog.open)return;
+ contactTrigger=trigger;contactOverflow=document.body.style.overflow;
+ document.body.style.overflow='hidden';contactClosing=false;
+ contactDialog.classList.remove('contact-closing');contactDialog.showModal();
+ if(!matchMedia('(prefers-reduced-motion: reduce)').matches){
+  contactMotion=contactDialog.animate({transform:[cardOrigin(trigger,contactDialog),'translate(0,0) scale(1) rotateY(0deg)'],opacity:[.25,1],boxShadow:['0 0 0 #8fffd500','0 25px 100px #0008']},{duration:560,easing:'cubic-bezier(.2,.8,.2,1)'});
+ }
+ document.querySelector('#close-contact').focus({preventScroll:true});
+}
+function closeContact(){
+ if(!contactDialog.open||contactClosing)return;
+ contactClosing=true;
+ if(matchMedia('(prefers-reduced-motion: reduce)').matches){contactDialog.close();return;}
+ const style=getComputedStyle(contactDialog),transform=style.transform,opacity=style.opacity;
+ contactMotion?.cancel();contactDialog.classList.add('contact-closing');
+ contactMotion=contactDialog.animate({transform:[transform,cardOrigin(contactTrigger,contactDialog)],opacity:[opacity,0],boxShadow:['0 25px 100px #0008','0 0 0 #8fffd500']},{duration:380,easing:'cubic-bezier(.4,0,.2,1)',fill:'forwards'});
+ contactMotion.finished.then(()=>contactDialog.close()).catch(()=>{});
+}
+[sayHello,document.querySelector('#header-connect')].forEach(trigger=>trigger.addEventListener('click',()=>openContact(trigger)));
+document.querySelector('#close-contact').addEventListener('click',closeContact);
+contactDialog.addEventListener('cancel',event=>{event.preventDefault();closeContact();});
+contactDialog.addEventListener('click',e=>{if(e.target===contactDialog){const r=contactDialog.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)closeContact();}});
+contactDialog.addEventListener('close',()=>{contactMotion?.cancel();contactMotion=null;contactClosing=false;contactDialog.classList.remove('contact-closing');document.body.style.overflow=contactOverflow;contactTrigger.focus({preventScroll:true});});
 
 // Preserve native downloads and make their otherwise silent response visible.
 document.querySelectorAll('a[download]').forEach(link=>link.addEventListener('click',()=>{
@@ -397,8 +417,8 @@ mapNodes.forEach(node=>{
 })();
 
 // Draw moving gradient centers directly so clipped text repaints every frame.
-document.querySelectorAll('.hero,#contact').forEach(section=>{
-  const accents=[...section.querySelectorAll('h1 .gradient-text,.hero-description .hero-name,.contact-grid h2 .gradient-text')];
+document.querySelectorAll('.hero,#about,#contact').forEach(section=>{
+  const accents=[...section.querySelectorAll('h1 .gradient-text,.hero-description .hero-name,.contact-grid h2 .gradient-text,.about-grid h2 em')];
   if(!accents.length)return;
   const reduced=matchMedia('(prefers-reduced-motion: reduce)');
   let points=[{x:0,y:20},{x:100,y:80},{x:50,y:50}],frame=0,visible=true;

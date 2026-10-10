@@ -272,7 +272,7 @@ h3,h4,.certifications strong,.stats-grid strong,.map-core strong,.expertise-stri
 .stats-grid strong{font-variant-numeric:tabular-nums}
 .about-grid h2{line-height:1.12}
 .hero h1 .gradient-text,.about-grid h2 em,.contact-grid h2 .gradient-text{font-style:italic;font-weight:400}
-.hero h1 .gradient-text,.hero-description .hero-name,.contact-grid h2 .gradient-text{display:inline-block;line-height:1.3;padding:0 .1em .14em .02em;margin-bottom:-.14em;background-color:#9290ff;background-image:radial-gradient(ellipse at center,#72ffd0 0%,#72ffd0e6 25%,#72ffd000 70%),radial-gradient(ellipse at center,#63c5ff 0%,#63c5ffe6 25%,#63c5ff00 70%),radial-gradient(ellipse at center,#a09aff 0%,#a09affcc 25%,#a09aff00 70%);background-size:100% 100%;background-position:50% 50%;background-repeat:no-repeat;background-clip:text;-webkit-background-clip:text;color:transparent}
+.hero h1 .gradient-text,.hero-description .hero-name,.contact-grid h2 .gradient-text,.about-grid h2 em{display:inline-block;line-height:1.3;padding:0 .1em .14em .02em;margin-bottom:-.14em;background-color:#9290ff;background-image:radial-gradient(ellipse at center,#72ffd0 0%,#72ffd0e6 25%,#72ffd000 70%),radial-gradient(ellipse at center,#63c5ff 0%,#63c5ffe6 25%,#63c5ff00 70%),radial-gradient(ellipse at center,#a09aff 0%,#a09affcc 25%,#a09aff00 70%);background-size:100% 100%;background-position:50% 50%;background-repeat:no-repeat;background-clip:text;-webkit-background-clip:text;color:transparent}
 .hero-description .hero-name{font-family:var(--heading);font-style:italic;font-weight:400;font-size:1.22em;font-synthesis:none}
 @media(max-width:600px){
 .hero h1{font-size:clamp(35px,10.5vw,58px);line-height:1.09}
@@ -280,4 +280,16 @@ h3,h4,.certifications strong,.stats-grid strong,.map-core strong,.expertise-stri
 h2,.about-grid h2{font-size:clamp(32px,8.8vw,44px)}
 .skill-card h3{font-size:24px}
 }
-@media(prefers-reduced-motion:reduce){.hero h1 .gradient-text,.hero-description .hero-name,.contact-grid h2 .gradient-text{animation:none;background-position:0% 20%,100% 80%,50% 50%}}
+@media(prefers-reduced-motion:reduce){.hero h1 .gradient-text,.hero-description .hero-name,.contact-grid h2 .gradient-text,.about-grid h2 em{animation:none;background-position:0% 20%,100% 80%,50% 50%}}
+
+/* Contact uses the same opening/closing motion as the detail cards. */
+.contact-dialog[open]{animation:none}
+#contact-dialog::backdrop{animation:card-backdrop-in .45s ease both}
+#contact-dialog.contact-closing::backdrop{animation:card-backdrop-out .38s ease both}
+.contact-email-icon{display:none}
+@media(max-width:600px){
+.contact-option-icon{line-height:1}
+.contact-option-icon .contact-icon-glyph{display:none}
+.contact-option-icon .contact-email-icon{display:block;width:20px;height:20px;place-self:center}
+}
+@media(prefers-reduced-motion:reduce){#contact-dialog::backdrop,#contact-dialog.contact-closing::backdrop{animation:none}}
