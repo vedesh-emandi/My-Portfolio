@@ -395,3 +395,37 @@ mapNodes.forEach(node=>{
   document.fonts.ready.then(()=>configure(true));
   configure(true);
 })();
+
+// Soft color pools follow fresh curved paths, shared by both hero accents.
+(()=>{
+  const accents=[...document.querySelectorAll('.hero h1 .gradient-text,.hero-description .hero-name')];
+  if(!accents.length)return;
+  const reduced=matchMedia('(prefers-reduced-motion: reduce)');
+  let points=[{x:0,y:20},{x:100,y:80},{x:50,y:50}],animations=[],visible=true,generation=0;
+  const randomPoint=()=>({x:Math.random()*100,y:Math.random()*100});
+  const position=list=>list.map(p=>p.x.toFixed(3)+'% '+p.y.toFixed(3)+'%').join(',');
+  function stop(){generation++;animations.forEach(a=>a.cancel());animations=[];}
+  async function flow(){
+    stop();
+    if(reduced.matches||document.hidden||!visible)return;
+    const run=generation;
+    while(run===generation){
+      const targets=points.map(p=>{let q=randomPoint();if(Math.hypot(q.x-p.x,q.y-p.y)<45)q={x:100-p.x,y:100-p.y};return q;});
+      const controls=points.map(randomPoint);
+      const frames=Array.from({length:15},(_,i)=>{
+        const t=i/14,u=1-t;
+        return {offset:t,backgroundPosition:position(points.map((p,j)=>({x:u*u*p.x+2*u*t*controls[j].x+t*t*targets[j].x,y:u*u*p.y+2*u*t*controls[j].y+t*t*targets[j].y})))};
+      });
+      animations=accents.map(el=>el.animate(frames,{duration:3500,easing:'ease-in-out',fill:'forwards'}));
+      try{await Promise.all(animations.map(a=>a.finished));}catch{return;}
+      if(run!==generation)return;
+      points=targets;
+      accents.forEach(el=>el.style.backgroundPosition=position(points));
+      animations.forEach(a=>a.cancel());animations=[];
+    }
+  }
+  reduced.addEventListener('change',flow);
+  document.addEventListener('visibilitychange',flow);
+  if('IntersectionObserver' in window){new IntersectionObserver(entries=>{const next=entries[0].isIntersecting;if(next!==visible){visible=next;flow();}}).observe(document.querySelector('.hero'));}
+  flow();
+})();
