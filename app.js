@@ -240,12 +240,16 @@ mapNodes.forEach(node=>{
       const from=pose(rank),to=pose(targetRank);
       const mix=(a,b)=>a+(b-a)*t;
       let x=mix(from.x,to.x),y=mix(from.y,to.y),scale=mix(from.scale,to.scale),angle=mix(from.angle,to.angle),order=deck.cards.length-(t<.5?rank:targetRank);
-      if(rank===0&&t>0){
-        // Slide in the finger's direction, then tuck behind the new front.
+      const travelingRank=reverse?deck.cards.length-1:0;
+      if(rank===travelingRank&&t>0){
+        // Reverse retraces the previous card's trip: out from behind the
+        // left edge, then back onto the front as the finger moves right.
         const arc=Math.sin(Math.PI*t);
-        x+=(reverse?1:-1)*deck.cardWidth*1.04*arc;
-        angle+=(reverse?1:-1)*9*arc;y-=8*arc;
-        order=t<.5?deck.cards.length+1:deck.cards.length-targetRank;
+        x-=deck.cardWidth*1.04*arc;
+        angle-=9*arc;y-=8*arc;
+        order=reverse
+          ?(t<.5?1:deck.cards.length+1)
+          :(t<.5?deck.cards.length+1:deck.cards.length-targetRank);
       }
       card.style.setProperty('--stack-transform',`translate(${x}px,${y}px) scale(${scale}) rotate(${angle}deg)`);
       card.style.setProperty('--stack-order',String(order));
@@ -289,8 +293,8 @@ mapNodes.forEach(node=>{
     function updateDrag(dx){
       const direction=dx<0?1:-1;
       deck.motionDirection=direction;
-      // The first half follows the finger approximately one-to-one. Release
-      // completes the trip behind the deck, or smoothly returns a short drag.
+      // Drag advances the outgoing or returning card along its shared arc.
+      // Release completes the trip, or smoothly returns a short drag.
       const amount=Math.min(.48,Math.abs(dx)/(deck.cardWidth*Math.PI));
       deck.pendingPosition=deck.index+direction*amount;
       if(!reduced.matches&&!deck.frame)deck.frame=requestAnimationFrame(()=>{deck.frame=0;draw(deck,deck.pendingPosition);});
