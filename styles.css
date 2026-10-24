@@ -299,14 +299,18 @@ h2,.about-grid h2{font-size:clamp(32px,8.8vw,44px)}
 @media(prefers-reduced-motion:reduce){#contact-dialog::backdrop,#contact-dialog.contact-closing::backdrop{animation:none}}
 
 /* Light travels from the circle's edge into the node before its glow appears. */
+@media(min-width:1100px){
+  .hero{grid-template-columns:minmax(0,1fr) minmax(0,1.08fr);gap:44px}
+  .identity-map .map-field{column-gap:22px;row-gap:18px}
+}
 .connection-energy{position:absolute;left:0;top:-2px;width:min(18px,35%);height:5px;pointer-events:none;background:linear-gradient(90deg,transparent,#bcffe9);opacity:0;border-radius:4px;box-shadow:0 0 8px #8fffd580}
 @media(prefers-reduced-motion:reduce){.identity-map .map-node,.identity-map .map-node::after,.identity-map .map-line{transition:none}}
 @media(prefers-reduced-motion:no-preference){
   /* Copy stays in normal layout; the entrance runs only on page load. */
   .hero-copy h1,.hero-description,.hero-actions{animation:hero-enter 520ms cubic-bezier(.22,.61,.36,1) both}
-  .hero-description{animation-delay:90ms}
-  .hero-actions{animation-delay:180ms}
-  .hero .identity-map{animation:hero-map-enter 520ms cubic-bezier(.22,.61,.36,1) 270ms both}
+  .hero-description{animation-delay:140ms}
+  .hero-actions{animation-delay:280ms}
+  .hero .identity-map{animation:hero-map-enter 520ms cubic-bezier(.22,.61,.36,1) 420ms both}
   @keyframes hero-enter{from{opacity:0;translate:0 14px}to{opacity:1;translate:0 0}}
   @keyframes hero-map-enter{from{opacity:0;translate:0 14px}to{opacity:1;translate:0 0}}
   /* Keyboard navigation must never land on a transparent control. */

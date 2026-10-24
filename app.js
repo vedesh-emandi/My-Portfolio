@@ -190,7 +190,7 @@ function energizeConnection(active){
     {opacity:1,offset:.12},
     {opacity:1,offset:.9},
     {transform:`translateX(${length}px)`,opacity:0,offset:1}
-  ],{duration:650,easing:'linear'});
+  ],{duration:520,easing:'linear'});
   connectionMotion=motion;
   motion.finished.then(()=>{if(connectionMotion===motion&&energizedNode===active){connectionMotion=null;arrive();}}).catch(()=>{});
 }
