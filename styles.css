@@ -293,3 +293,27 @@ h2,.about-grid h2{font-size:clamp(32px,8.8vw,44px)}
 .contact-option-icon .contact-email-icon{display:block;width:20px;height:20px;place-self:center}
 }
 @media(prefers-reduced-motion:reduce){#contact-dialog::backdrop,#contact-dialog.contact-closing::backdrop{animation:none}}
+
+/* Week 1: one purposeful pulse, then the existing connection highlight. */
+.identity-map .map-line::after{content:'';position:absolute;inset:-2px 0;pointer-events:none;background:linear-gradient(90deg,transparent,#bcffe9,transparent);opacity:0;transform:scaleX(0);transform-origin:left;box-shadow:0 0 8px #8fffd580}
+@media(prefers-reduced-motion:no-preference){
+  .identity-map[data-active="governance"] .line-a::after,
+  .identity-map[data-active="directory"] .line-b::after,
+  .identity-map[data-active="policy"] .line-c::after,
+  .identity-map[data-active="review"] .line-d::after{animation:connection-travel 650ms cubic-bezier(.22,.61,.36,1) both}
+  @keyframes connection-travel{
+    0%{opacity:0;transform:translateX(0) scaleX(.12)}
+    20%{opacity:1}
+    75%{opacity:1;transform:translateX(78%) scaleX(.22)}
+    100%{opacity:0;transform:translateX(88%) scaleX(.12)}
+  }
+  /* Copy stays in normal layout; the entrance runs only on page load. */
+  .hero-copy h1,.hero-description,.hero-actions{animation:hero-enter 520ms cubic-bezier(.22,.61,.36,1) both}
+  .hero-description{animation-delay:90ms}
+  .hero-actions{animation-delay:180ms}
+  .hero .identity-map{animation:hero-map-enter 520ms cubic-bezier(.22,.61,.36,1) 270ms both}
+  @keyframes hero-enter{from{opacity:0;translate:0 14px}to{opacity:1;translate:0 0}}
+  @keyframes hero-map-enter{from{opacity:0;translate:0 14px}to{opacity:1;translate:0 0}}
+  /* Keyboard navigation must never land on a transparent control. */
+  .hero-actions:focus-within,.hero .identity-map:focus-within{animation:none}
+}
