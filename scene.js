@@ -2,18 +2,85 @@
  const scene=document.querySelector('.portal-scene'),stage=scene.querySelector('.scene-sticky'),map=scene.querySelector('.identity-map'),copy=scene.querySelector('.hero-copy'),intro=scene.querySelector('.portal-intro'),hint=scene.querySelector('.scroll-invitation');
  const reduced=matchMedia('(prefers-reduced-motion: reduce)');let frame=0,opening=[];
  const clamp=x=>Math.max(0,Math.min(1,x)),lerp=(a,b,p)=>a+(b-a)*p;
+ // Reserve the docked scene until its short reveal finishes. Intercept input
+ // before it overshoots; the scroll listener also covers scrollbar/keyboard jumps.
+ let gate='armed',dockAnchor=0,gateTimer=0,lastScrollY=scrollY,touchY=null;
+ function dockPosition(){
+  const header=document.querySelector('.header').offsetHeight;
+  return Math.max(0,scrollY+scene.getBoundingClientRect().top-header+(innerWidth<=900?500:700));
+ }
+ if(location.hash||scrollY>=dockPosition())gate='released';
+ function releaseDockHold(){
+  clearTimeout(gateTimer);gateTimer=0;gate='released';delete scene.dataset.revealHold;
+ }
+ function beginDockHold(){
+  if(gate!=='armed'||reduced.matches||document.hidden)return;
+  gate='holding';dockAnchor=dockPosition();scene.dataset.revealHold='true';
+  scrollTo({top:dockAnchor,behavior:'instant'});lastScrollY=dockAnchor;
+  // Always release, including if a browser interrupts an animation callback.
+  gateTimer=setTimeout(()=>{completeRevealImmediately();releaseDockHold();},4000);
+ }
+ function bypassDockHold(){
+  if(gate==='holding')completeRevealImmediately();
+  releaseDockHold();
+ }
+ function inDialog(){return !!document.querySelector('dialog[open]')}
+ function interceptScroll(event,delta){
+  if(!delta||reduced.matches||inDialog())return;
+  if(gate==='holding'){event.preventDefault();return;}
+  if(gate==='armed'&&delta>0&&scrollY+delta>=dockPosition()){
+   event.preventDefault();beginDockHold();schedule();
+  }
+ }
+ addEventListener('wheel',event=>{
+  if(event.ctrlKey)return;
+  const delta=event.deltaY*(event.deltaMode===1?16:event.deltaMode===2?innerHeight:1);
+  interceptScroll(event,delta);
+ },{passive:false});
+ addEventListener('touchstart',event=>{touchY=event.touches.length===1?event.touches[0].clientY:null},{passive:true});
+ addEventListener('touchmove',event=>{
+  if(touchY===null||event.touches.length!==1)return;
+  const next=event.touches[0].clientY,delta=touchY-next;touchY=next;interceptScroll(event,delta);
+ },{passive:false});
+ addEventListener('touchend',()=>{touchY=null},{passive:true});
+ addEventListener('keydown',event=>{
+  if(inDialog())return;
+  if(event.key==='Escape'&&gate==='holding'){bypassDockHold();return;}
+  if(event.target.closest('input,textarea,select,[contenteditable="true"]'))return;
+  if(event.key===' '&&event.target.closest('button,a'))return;
+  const delta={ArrowDown:40,ArrowUp:-40,PageDown:innerHeight,PageUp:-innerHeight,End:document.documentElement.scrollHeight,Home:-document.documentElement.scrollHeight,' ':event.shiftKey?-innerHeight:innerHeight}[event.key];
+  if(delta)interceptScroll(event,delta);
+ });
+ addEventListener('scroll',()=>{
+  const y=scrollY,dock=dockPosition(),travel=innerWidth<=900?500:700;
+  if(gate==='holding'){
+   if(Math.abs(y-dockAnchor)>.5)scrollTo({top:dockAnchor,behavior:'instant'});
+   lastScrollY=dockAnchor;return;
+  }
+  if(gate==='armed'&&!reduced.matches&&!inDialog()&&y>lastScrollY&&lastScrollY<dock&&y>=dock){beginDockHold();schedule();return;}
+  // Only a deliberate return to the opening re-arms the presentation.
+  if(gate==='released'&&y<lastScrollY&&y<=dock-travel*.92)gate='armed';
+  lastScrollY=y;
+ },{passive:true});
+ document.addEventListener('click',event=>{
+  const link=event.target.closest('a[href]');
+  if(link&&link.getAttribute('href').startsWith('#'))bypassDockHold();
+ },true);
+ addEventListener('pagehide',releaseDockHold);
+
  const headingLines=[...copy.querySelectorAll('.heading-ink')];
  const description=copy.querySelector('.hero-description');
  const shuffle={played:false,raf:0,layer:null};
  let copyRevealed=false,descriptionTimer=0,copyAnimations=[];
  const alphabet='ABCDEFGHIJKLMNOPQRSTUVWXYZ';
- function settleDescription(){
+ function settleDescription(completed=false){
   cancelAnimationFrame(shuffle.raf);shuffle.raf=0;shuffle.layer?.remove();shuffle.layer=null;
   description.classList.remove('is-shuffling');
+  if(completed)releaseDockHold();
  }
  function playDescription(){
   shuffle.played=true;
-  if(reduced.matches||document.hidden)return;
+  if(reduced.matches||document.hidden){releaseDockHold();return;}
   const original=description.querySelector('.shuffle-original');
   const bounds=description.getBoundingClientRect(),range=document.createRange();
   const measure=document.createElement('canvas').getContext('2d');
@@ -36,7 +103,7 @@
   const start=performance.now();let previousTick=-1;
   function animate(now){
    const elapsed=now-start,tick=Math.floor(elapsed/65);
-   if(elapsed>=980||reduced.matches||document.hidden){settleDescription();return;}
+   if(elapsed>=980||reduced.matches||document.hidden){settleDescription(true);return;}
    if(tick!==previousTick){
     letters.forEach(({char,glyph,ink,width,canvasFont},i)=>{
      const settled=elapsed>160+i/letters.length*760||/\s|[.,’—-]/.test(char);
@@ -61,10 +128,11 @@
    description.style.opacity=0;headingLines.forEach(line=>line.style.transform='translateY(115%)');return;
   }
   if(copyRevealed){
-   if(reduced.matches){clearTimeout(descriptionTimer);copyAnimations.forEach(a=>a.cancel());copyAnimations=[];settleDescription();description.style.opacity=1;headingLines.forEach(line=>line.style.transform='none');}
+   if(reduced.matches)completeRevealImmediately();
    return;
   }
   if(progress<.995)return;
+  beginDockHold();
   copyRevealed=true;copy.style.opacity=1;copy.inert=false;copy.setAttribute('aria-hidden','false');
   headingLines.forEach(line=>line.style.transform='none');
   if(reduced.matches){description.style.opacity=1;return;}
@@ -78,8 +146,13 @@
   )));
   descriptionTimer=setTimeout(()=>{description.style.opacity=1;playDescription();},900);
  }
- addEventListener('resize',settleDescription);
- document.addEventListener('visibilitychange',()=>{if(document.hidden)settleDescription()});
+ function completeRevealImmediately(){
+  clearTimeout(descriptionTimer);copyAnimations.forEach(a=>a.cancel());copyAnimations=[];
+  settleDescription(gate==='holding');
+  if(copyRevealed){description.style.opacity=1;headingLines.forEach(line=>line.style.transform='none');}
+ }
+ addEventListener('resize',completeRevealImmediately);
+ document.addEventListener('visibilitychange',()=>{if(document.hidden)completeRevealImmediately()});
 
  // Custom absolute nodes use centre anchors. Measure their untransformed boxes
  // for the existing energy paths, including the half-width translation.
@@ -110,8 +183,8 @@
   opening.push(identityCore.animate([{opacity:0,scale:'.8'},{opacity:1,scale:'1'}],{duration:450,easing:'ease-out'}));
   mapNodes.forEach((node,i)=>{
    const dx=identityCore.offsetLeft-node.offsetLeft,dy=identityCore.offsetTop-node.offsetTop;
-   const a=node.animate([{opacity:0,translate:`${dx}px ${dy}px`,scale:'.35'},{opacity:1,translate:'0 0',scale:'1'}],{delay:260+i*100,duration:620,easing:'cubic-bezier(.2,.8,.2,1)',fill:'backwards'});opening.push(a);
-   opening.push(connectionLines[i].animate([{opacity:0,scale:'0 1'},{opacity:1,scale:'1 1'}],{delay:260+i*100,duration:620,easing:'ease-out',fill:'backwards'}));
+   const a=node.animate([{opacity:0,translate:`${dx}px ${dy}px`,scale:'.35'},{opacity:1,translate:'0 0',scale:'1'}],{delay:1450+i*120,duration:620,easing:'cubic-bezier(.2,.8,.2,1)',fill:'backwards'});opening.push(a);
+   opening.push(connectionLines[i].animate([{opacity:0,scale:'0 1'},{opacity:1,scale:'1 1'}],{delay:1450+i*120,duration:620,easing:'ease-out',fill:'backwards'}));
   });
  }
  const destinations={experiencePreview:['#experience','Explore my experience'],skillsPreview:['#skills','Explore my toolkit'],workPreview:['#work','Explore selected work'],credentialsPreview:['#credentials','Explore credentials'],contactPreview:['#contact','See contact options'],introPreview:['#about','More about me']};
