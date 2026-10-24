@@ -4,7 +4,7 @@
  const clamp=x=>Math.max(0,Math.min(1,x)),lerp=(a,b,p)=>a+(b-a)*p;
  // Reserve the docked scene until its short reveal finishes. Intercept input
  // before it overshoots; the scroll listener also covers scrollbar/keyboard jumps.
- let gate='armed',dockAnchor=0,gateTimer=0,lastScrollY=scrollY,touchY=null;
+ let gate='armed',dockAnchor=0,gateTimer=0,lastScrollY=scrollY,touchY=null,rootLock=null;
  function dockPosition(){
   const header=document.querySelector('.header').offsetHeight;
   return Math.max(0,scrollY+scene.getBoundingClientRect().top-header+(innerWidth<=900?500:700));
@@ -12,10 +12,12 @@
  if(location.hash||scrollY>=dockPosition())gate='released';
  function releaseDockHold(){
   clearTimeout(gateTimer);gateTimer=0;gate='released';delete scene.dataset.revealHold;
+  if(rootLock!==null){document.documentElement.style.overflow=rootLock;rootLock=null;}
  }
  function beginDockHold(){
-  if(gate!=='armed'||reduced.matches||document.hidden)return;
+  if(innerWidth<=900||gate!=='armed'||reduced.matches||document.hidden)return;
   gate='holding';dockAnchor=dockPosition();scene.dataset.revealHold='true';
+  rootLock=document.documentElement.style.overflow;document.documentElement.style.overflow='hidden';
   scrollTo({top:dockAnchor,behavior:'instant'});lastScrollY=dockAnchor;
   // Always release, including if a browser interrupts an animation callback.
   gateTimer=setTimeout(()=>{completeRevealImmediately();releaseDockHold();},4000);
@@ -26,10 +28,14 @@
  }
  function inDialog(){return !!document.querySelector('dialog[open]')}
  function interceptScroll(event,delta){
-  if(!delta||reduced.matches||inDialog())return;
+  if(innerWidth<=900||!delta||reduced.matches||inDialog())return;
   if(gate==='holding'){event.preventDefault();return;}
-  if(gate==='armed'&&delta>0&&scrollY+delta>=dockPosition()){
-   event.preventDefault();beginDockHold();schedule();
+  if(gate==='armed'){
+   // Consume hero input before the compositor can scroll beyond the dock.
+   event.preventDefault();const next=Math.max(0,scrollY+delta);
+   if(delta>0&&next>=dockPosition())beginDockHold();
+   else scrollTo({top:next,behavior:'instant'});
+   schedule();
   }
  }
  addEventListener('wheel',event=>{
@@ -52,9 +58,10 @@
   if(delta)interceptScroll(event,delta);
  });
  addEventListener('scroll',()=>{
+  if(innerWidth<=900){lastScrollY=scrollY;return;}
   const y=scrollY,dock=dockPosition(),travel=innerWidth<=900?500:700;
   if(gate==='holding'){
-   if(Math.abs(y-dockAnchor)>.5)scrollTo({top:dockAnchor,behavior:'instant'});
+   // Native page scrolling is locked. Do not chase scroll events with corrections.
    lastScrollY=dockAnchor;return;
   }
   if(gate==='armed'&&!reduced.matches&&!inDialog()&&y>lastScrollY&&lastScrollY<dock&&y>=dock){beginDockHold();schedule();return;}
@@ -151,7 +158,8 @@
   settleDescription(gate==='holding');
   if(copyRevealed){description.style.opacity=1;headingLines.forEach(line=>line.style.transform='none');}
  }
- addEventListener('resize',completeRevealImmediately);
+ let revealWidth=innerWidth;
+ addEventListener('resize',()=>{if(innerWidth!==revealWidth||gate==='holding')completeRevealImmediately();revealWidth=innerWidth;});
  document.addEventListener('visibilitychange',()=>{if(document.hidden)completeRevealImmediately()});
 
  // Custom absolute nodes use centre anchors. Measure their untransformed boxes
@@ -163,23 +171,34 @@
   Object.assign(line.style,{left:`${cx+ux*radius}px`,top:`${cy+uy*radius}px`,width:`${length}px`,transform:`rotate(${Math.atan2(dy,dx)}rad)`});
   node.style.setProperty('--arrival-x',`${node.offsetWidth/2-ux*edge}px`);node.style.setProperty('--arrival-y',`${node.offsetHeight/2-uy*edge}px`);return length;
  };
- function draw(){frame=0;const mobile=innerWidth<=900,header=document.querySelector('.header').offsetHeight,mobileDockY=Math.max(460,24+copy.offsetHeight+36),h=mobile?Math.max(900,innerHeight-header,mobileDockY+454):Math.max(640,innerHeight-header),travel=mobile?500:700;
+ function draw(){
+  frame=0;const mobile=innerWidth<=900,header=document.querySelector('.header').offsetHeight;
+  if(mobile){
+   if(gate==='holding')releaseDockHold();
+   for(const prop of ['left','top','width','height'])map.style.removeProperty(prop);
+   map.style.borderColor='rgba(65,94,102,1)';map.style.backgroundColor='rgba(14,25,36,.96)';
+   map.querySelectorAll('.map-top,.map-footer').forEach(e=>e.style.opacity=1);
+   intro.inert=true;hint.inert=true;
+   // A normal-flow card on phones; only the text has an entry animation.
+   updateHeading(1);mapNodes.forEach((node,i)=>positionConnection(node,connectionLines[i]));return;
+  }
+  const h=Math.max(640,innerHeight-header),travel=700;
   scene.style.setProperty('--stage-height',h+'px');scene.style.setProperty('--travel',travel+'px');stage.style.top=header+'px';
   const raw=clamp((header-scene.getBoundingClientRect().top)/travel),p=reduced.matches?(raw>.15?1:0):raw;
-  const initialW=Math.min(mobile?innerWidth-28:980,innerWidth-64),finalW=mobile?innerWidth-32:Math.min(650,innerWidth*.48-40);
-  const initialH=mobile?450:Math.min(540,h-150),finalH=mobile?430:Math.min(520,h-120);
-  const initialX=(innerWidth-initialW)/2,finalX=mobile?16:innerWidth-finalW-56;
-  const initialY=mobile?155:125,finalY=mobile?mobileDockY:(h-finalH)/2;
+  const initialW=Math.min(980,innerWidth-64),finalW=Math.min(650,innerWidth*.48-40);
+  const initialH=Math.min(540,h-150),finalH=Math.min(520,h-120);
+  const initialX=(innerWidth-initialW)/2,finalX=innerWidth-finalW-56;
+  const initialY=125,finalY=(h-finalH)/2;
   Object.assign(map.style,{left:lerp(initialX,finalX,p)+'px',top:lerp(initialY,finalY,p)+'px',width:lerp(initialW,finalW,p)+'px',height:lerp(initialH,finalH,p)+'px',borderColor:`rgba(65,94,102,${p})`,backgroundColor:`rgba(14,25,36,${p*.96})`});
   map.querySelectorAll('.map-top,.map-footer').forEach(e=>e.style.opacity=clamp((p-.35)/.65));
-  intro.style.opacity=1-clamp(p*3);hint.style.opacity=1-clamp(p*3);hint.inert=p>.2;
-  updateHeading(p);
-  mapNodes.forEach((node,i)=>positionConnection(node,connectionLines[i]));
+  intro.style.opacity=1-clamp(p*3);intro.inert=p>.2;hint.style.opacity=1-clamp(p*3);hint.inert=p>.2;
+  updateHeading(p);mapNodes.forEach((node,i)=>positionConnection(node,connectionLines[i]));
   if(raw>.03)opening.forEach(a=>a.finish());
  }
+
  function schedule(){if(!frame)frame=requestAnimationFrame(draw)}
- addEventListener('scroll',schedule,{passive:true});addEventListener('resize',schedule);reduced.addEventListener('change',()=>{opening.forEach(a=>a.finish());draw()});draw();
- if(!reduced.matches&&scrollY<50){
+ addEventListener('scroll',()=>{if(innerWidth>900)schedule()},{passive:true});addEventListener('resize',schedule);reduced.addEventListener('change',()=>{opening.forEach(a=>a.finish());draw()});draw();
+ if(innerWidth>900&&!reduced.matches&&scrollY<50){
   opening.push(identityCore.animate([{opacity:0,scale:'.8'},{opacity:1,scale:'1'}],{duration:450,easing:'ease-out'}));
   mapNodes.forEach((node,i)=>{
    const dx=identityCore.offsetLeft-node.offsetLeft,dy=identityCore.offsetTop-node.offsetTop;

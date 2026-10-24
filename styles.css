@@ -276,7 +276,7 @@ h3,h4,.certifications strong,.stats-grid strong,.map-core strong,.expertise-stri
 .stats-grid strong{font-variant-numeric:tabular-nums}
 .about-grid h2{line-height:1.12}
 .hero h1 .gradient-text,.about-grid h2 em,.contact-grid h2 .gradient-text{font-style:italic;font-weight:400}
-.hero h1 .gradient-text,.hero-description .hero-name,.contact-grid h2 .gradient-text,.about-grid h2 em{display:inline-block;line-height:1.3;padding:0 .1em .14em .02em;margin-bottom:-.14em;background-color:#9290ff;background-image:radial-gradient(ellipse at center,#72ffd0 0%,#72ffd0e6 25%,#72ffd000 70%),radial-gradient(ellipse at center,#63c5ff 0%,#63c5ffe6 25%,#63c5ff00 70%),radial-gradient(ellipse at center,#a09aff 0%,#a09affcc 25%,#a09aff00 70%);background-size:100% 100%;background-position:50% 50%;background-repeat:no-repeat;background-clip:text;-webkit-background-clip:text;color:transparent}
+.portal-intro h1 .gradient-text,.hero h1 .gradient-text,.hero-description .hero-name,.contact-grid h2 .gradient-text,.about-grid h2 em{display:inline-block;line-height:1.3;padding:0 .1em .14em .02em;margin-bottom:-.14em;background-color:#9290ff;background-image:radial-gradient(ellipse at center,#72ffd0 0%,#72ffd0e6 25%,#72ffd000 70%),radial-gradient(ellipse at center,#63c5ff 0%,#63c5ffe6 25%,#63c5ff00 70%),radial-gradient(ellipse at center,#a09aff 0%,#a09affcc 25%,#a09aff00 70%);background-size:100% 100%;background-position:50% 50%;background-repeat:no-repeat;background-clip:text;-webkit-background-clip:text;color:transparent}
 .hero-description .hero-name{font-family:var(--heading);font-style:italic;font-weight:400;font-size:1.22em;font-synthesis:none}
 @media(max-width:600px){
 .hero h1{font-size:clamp(35px,10.5vw,58px);line-height:1.09}
@@ -361,3 +361,35 @@ h2,.about-grid h2{font-size:clamp(32px,8.8vw,44px)}
 .shuffle-glyph.is-name.is-settled{color:#b6a3ff}
 .hero-description.is-shuffling .shuffle-original{opacity:0}
 @media(prefers-reduced-motion:reduce){.heading-ink{transform:none!important;will-change:auto}.shuffle-layer{display:none}.hero-description.is-shuffling .shuffle-original{opacity:1}}
+
+/* Preserve the viewport width when the desktop reveal temporarily locks scrolling. */
+@media(min-width:901px){
+ html{scrollbar-gutter:stable}
+ .portal-scene[data-reveal-hold] .scene-sticky{position:fixed;left:0;right:0;z-index:5}
+}
+/* Keep all four text rows comfortably within the circle, without clipping ripples. */
+.portal-scene .map-core{padding:12px 8px;gap:4px;justify-content:center;line-height:1}
+.portal-scene .map-core>.core-icon{font-size:20px;line-height:1;margin:0;flex-shrink:0}
+.portal-scene .map-core>strong{font-size:26px;line-height:1.12;flex-shrink:0}
+.portal-scene .map-core>small{font-size:9px;line-height:1.15;margin:0;letter-spacing:.2px;white-space:nowrap;flex-shrink:0}
+.portal-scene .map-core>.meet-label{font-size:8px;line-height:1.1;letter-spacing:1px;margin:2px 0 0;white-space:nowrap;flex-shrink:0}
+@media(max-width:900px){
+ .portal-scene{height:auto}
+ .portal-scene .scene-sticky{position:relative;top:0!important;height:auto;overflow:visible;padding:28px 0 36px}
+ .portal-scene .portal-intro,.portal-scene .scroll-invitation{display:none}
+ .portal-scene .hero{position:relative;inset:auto;display:flex;flex-direction:column;align-items:stretch;gap:32px;min-height:0;padding:0}
+ .portal-scene .hero-copy{position:relative;inset:auto;width:calc(100% - 48px);max-width:610px;transform:none;margin:0 auto}
+ .portal-scene .identity-map{position:relative;inset:auto;width:calc(100% - 32px);max-width:550px;height:430px;margin:0 auto;flex-shrink:0}
+ .portal-scene .map-core{padding:10px 6px;gap:3px}
+ .portal-scene .map-core>.core-icon{font-size:15px}
+ .portal-scene .map-core>strong{font-size:21px;line-height:1.05}
+ .portal-scene .map-core>small{font-size:8px}
+ .portal-scene .map-core>.meet-label{font-size:7px;letter-spacing:.8px}
+}
+@media(max-width:360px){
+ .portal-scene .map-core{padding:8px 4px;gap:2px}
+ .portal-scene .map-core>.core-icon{font-size:13px}
+ .portal-scene .map-core>strong{font-size:19px}
+ .portal-scene .map-core>small{font-size:7px}
+ .portal-scene .map-core>.meet-label{font-size:6.5px;letter-spacing:.6px}
+}

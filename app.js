@@ -460,7 +460,7 @@ new ResizeObserver(()=>{
 })();
 
 // Draw moving gradient centers directly so clipped text repaints every frame.
-document.querySelectorAll('.hero,#about,#contact').forEach(section=>{
+document.querySelectorAll('.portal-intro,.hero,#about,#contact').forEach(section=>{
   const accents=[...section.querySelectorAll('h1 .gradient-text,.hero-description .hero-name,.contact-grid h2 .gradient-text,.about-grid h2 em')];
   if(!accents.length)return;
   const reduced=matchMedia('(prefers-reduced-motion: reduce)');
