@@ -80,10 +80,13 @@
  const shuffle={played:false,raf:0,layer:null};
  let copyRevealed=false,descriptionTimer=0,copyAnimations=[];
  const alphabet='ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+ function showMobileDetails(){
+  if(innerWidth<=900){scene.classList.add('mobile-details-visible');map.inert=false;}
+ }
  function settleDescription(completed=false){
   cancelAnimationFrame(shuffle.raf);shuffle.raf=0;shuffle.layer?.remove();shuffle.layer=null;
   description.classList.remove('is-shuffling');
-  if(completed)releaseDockHold();
+  if(completed){showMobileDetails();releaseDockHold();}
  }
  function playDescription(){
   shuffle.played=true;
@@ -138,25 +141,31 @@
    if(reduced.matches)completeRevealImmediately();
    return;
   }
-  if(progress<.995)return;
+  if(progress<1)return;
   beginDockHold();
   copyRevealed=true;copy.style.opacity=1;copy.inert=false;copy.setAttribute('aria-hidden','false');
   headingLines.forEach(line=>line.style.transform='none');
-  if(reduced.matches){description.style.opacity=1;return;}
+  description.style.opacity=0;
+  if(innerWidth<=900)map.inert=true;
+  if(reduced.matches){description.style.opacity=1;showMobileDetails();releaseDockHold();return;}
   headingLines.forEach((line,index)=>copyAnimations.push(line.animate(
    [{transform:'translateY(115%)'},{transform:'translateY(0)'}],
    {duration:650,delay:index*120,easing:'cubic-bezier(.22,.8,.25,1)',fill:'backwards'}
   )));
-  copy.querySelectorAll('.eyebrow,.hero-actions,.hero-meta').forEach((item,index)=>copyAnimations.push(item.animate(
+  copy.querySelectorAll(innerWidth<=900?'.eyebrow':'.eyebrow,.hero-actions,.hero-meta').forEach((item,index)=>copyAnimations.push(item.animate(
    [{opacity:0,transform:'translateY(8px)'},{opacity:1,transform:'translateY(0)'}],
    {duration:450,delay:index===0?0:900,easing:'ease-out',fill:'backwards'}
   )));
   descriptionTimer=setTimeout(()=>{description.style.opacity=1;playDescription();},900);
  }
  function completeRevealImmediately(){
+  if(gate==='holding'){
+   visualProgress=1;progressVelocity=0;schedule();
+   copyRevealed=true;copy.style.opacity=1;copy.inert=false;copy.setAttribute('aria-hidden','false');
+  }
   clearTimeout(descriptionTimer);copyAnimations.forEach(a=>a.cancel());copyAnimations=[];
   settleDescription(gate==='holding');
-  if(copyRevealed){description.style.opacity=1;headingLines.forEach(line=>line.style.transform='none');}
+  if(copyRevealed){description.style.opacity=1;headingLines.forEach(line=>line.style.transform='none');showMobileDetails();}
  }
  let revealWidth=innerWidth;
  addEventListener('resize',()=>{if(innerWidth!==revealWidth||gate==='holding')completeRevealImmediately();revealWidth=innerWidth;});
@@ -171,20 +180,34 @@
   Object.assign(line.style,{left:`${cx+ux*radius}px`,top:`${cy+uy*radius}px`,width:`${length}px`,transform:`rotate(${Math.atan2(dy,dx)}rad)`});
   node.style.setProperty('--arrival-x',`${node.offsetWidth/2-ux*edge}px`);node.style.setProperty('--arrival-y',`${node.offsetHeight/2-uy*edge}px`);return length;
  };
- function draw(){
+ let visualProgress=null,progressVelocity=0,lastDrawTime=0;
+ function draw(now=performance.now()){
   frame=0;const mobile=innerWidth<=900,header=document.querySelector('.header').offsetHeight;
   if(mobile){
+   visualProgress=null;progressVelocity=0;lastDrawTime=0;
    if(gate==='holding')releaseDockHold();
    for(const prop of ['left','top','width','height'])map.style.removeProperty(prop);
    map.style.borderColor='rgba(65,94,102,1)';map.style.backgroundColor='rgba(14,25,36,.96)';
    map.querySelectorAll('.map-top,.map-footer').forEach(e=>e.style.opacity=1);
    intro.inert=true;hint.inert=true;
-   // A normal-flow card on phones; only the text has an entry animation.
+   // The card stays in normal flow and joins the final mobile entrance.
    updateHeading(1);mapNodes.forEach((node,i)=>positionConnection(node,connectionLines[i]));return;
   }
   const h=Math.max(640,innerHeight-header),travel=700;
   scene.style.setProperty('--stage-height',h+'px');scene.style.setProperty('--travel',travel+'px');stage.style.top=header+'px';
-  const raw=clamp((header-scene.getBoundingClientRect().top)/travel),p=reduced.matches?(raw>.15?1:0):raw;
+  const raw=clamp((header-scene.getBoundingClientRect().top)/travel);
+  if(visualProgress===null||reduced.matches||document.hidden){
+   visualProgress=reduced.matches?(raw>.15?1:0):raw;progressVelocity=0;
+  }else{
+   // Critically damped motion preserves velocity between wheel steps, without bounce.
+   const dt=Math.min(.064,Math.max(0,(now-lastDrawTime)/1000)),omega=12;
+   const offset=visualProgress-raw,impulse=progressVelocity+omega*offset,decay=Math.exp(-omega*dt);
+   visualProgress=raw+(offset+impulse*dt)*decay;
+   progressVelocity=(progressVelocity-omega*impulse*dt)*decay;
+   if(Math.abs(visualProgress-raw)<.0005&&Math.abs(progressVelocity)<.005){visualProgress=raw;progressVelocity=0;}
+  }
+  lastDrawTime=now;
+  const p=clamp(visualProgress);
   const initialW=Math.min(980,innerWidth-64),finalW=Math.min(650,innerWidth*.48-40);
   const initialH=Math.min(540,h-150),finalH=Math.min(520,h-120);
   const initialX=(innerWidth-initialW)/2,finalX=innerWidth-finalW-56;
@@ -194,6 +217,7 @@
   intro.style.opacity=1-clamp(p*3);intro.inert=p>.2;hint.style.opacity=1-clamp(p*3);hint.inert=p>.2;
   updateHeading(p);mapNodes.forEach((node,i)=>positionConnection(node,connectionLines[i]));
   if(raw>.03)opening.forEach(a=>a.finish());
+  if(visualProgress!==raw&&!reduced.matches)schedule();
  }
 
  function schedule(){if(!frame)frame=requestAnimationFrame(draw)}

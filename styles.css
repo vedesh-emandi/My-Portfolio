@@ -352,7 +352,7 @@ h2,.about-grid h2{font-size:clamp(32px,8.8vw,44px)}
 .heading-ink{display:block;will-change:transform}
 .portal-scene .hero h1 .heading-ink.gradient-text{display:block;width:max-content}
 /* The paragraph keeps its original layout and accessible wording throughout. */
-.portal-scene .hero-description{position:relative}
+.portal-scene .hero-description{position:relative;opacity:0}
 .shuffle-layer{position:absolute;inset:0;pointer-events:none;color:var(--mint)}
 .shuffle-glyph{position:absolute;display:block;text-align:center;white-space:pre;letter-spacing:0}
 .shuffle-ink{position:absolute;left:50%;width:max-content;transform-origin:center}
@@ -374,6 +374,8 @@ h2,.about-grid h2{font-size:clamp(32px,8.8vw,44px)}
 .portal-scene .map-core>small{font-size:9px;line-height:1.15;margin:0;letter-spacing:.2px;white-space:nowrap;flex-shrink:0}
 .portal-scene .map-core>.meet-label{font-size:8px;line-height:1.1;letter-spacing:1px;margin:2px 0 0;white-space:nowrap;flex-shrink:0}
 @media(max-width:900px){
+ html.has-hero-motion .portal-scene .hero-actions,html.has-hero-motion .portal-scene .hero-meta,html.has-hero-motion .portal-scene .identity-map{opacity:0;transform:translateY(18px);visibility:hidden;transition:opacity .65s ease,transform .65s cubic-bezier(.22,.8,.25,1),visibility 0s .65s}
+ html.has-hero-motion .portal-scene.mobile-details-visible .hero-actions,html.has-hero-motion .portal-scene.mobile-details-visible .hero-meta,html.has-hero-motion .portal-scene.mobile-details-visible .identity-map{opacity:1;transform:none;visibility:visible;transition-delay:0s}
  .portal-scene{height:auto}
  .portal-scene .scene-sticky{position:relative;top:0!important;height:auto;overflow:visible;padding:28px 0 36px}
  .portal-scene .portal-intro,.portal-scene .scroll-invitation{display:none}
@@ -386,6 +388,7 @@ h2,.about-grid h2{font-size:clamp(32px,8.8vw,44px)}
  .portal-scene .map-core>small{font-size:8px}
  .portal-scene .map-core>.meet-label{font-size:7px;letter-spacing:.8px}
 }
+@media(prefers-reduced-motion:reduce){html.has-hero-motion .portal-scene .hero-actions,html.has-hero-motion .portal-scene .hero-meta,html.has-hero-motion .portal-scene .identity-map{transition:none}}
 @media(max-width:360px){
  .portal-scene .map-core{padding:8px 4px;gap:2px}
  .portal-scene .map-core>.core-icon{font-size:13px}
