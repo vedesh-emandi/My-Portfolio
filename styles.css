@@ -71,11 +71,15 @@ a[download].glass-control{display:inline-flex;align-items:center;padding:13px 17
 .identity-map .node-number{padding:0;border:none;font-size:10px;line-height:1.2;color:var(--mint)}
 .identity-map .map-node small{font-size:10px;margin-top:3px;line-height:1.3}
 .identity-map .map-node:hover,.identity-map .map-node:focus-visible{animation-play-state:paused}
-.identity-map .map-node.map-active{border-color:#a2ffda;box-shadow:inset 0 1px 0 #e2fff470,0 0 25px #8fffd535;background-color:#203b40}
+.identity-map .map-node.map-active{animation-play-state:paused}
+.identity-map .map-node{border-color:#b4ffe13d;box-shadow:inset 0 1px 0 #e8fff947,inset 0 -1px 0 #6ee3b51c,0 8px 24px #00000020}
+.identity-map .map-node::after{opacity:0;background:radial-gradient(125px circle at var(--arrival-x,50%) var(--arrival-y,50%),#b8ffe649 0%,#86ffcc1c 38%,transparent 75%)}
+.identity-map .map-node.map-arrived{border-color:#a2ffda;box-shadow:inset 0 1px 0 #e2fff470,0 0 25px #8fffd535;background-color:#203b40}
+.identity-map .map-node.map-arrived::after{opacity:1}
 .identity-map[data-active]:not([data-active=""]) .map-core{border-color:var(--mint);box-shadow:0 0 40px #8fffd529}
 .identity-map .map-line{width:34%;z-index:0;background:#79e5d033;transition:background .2s,box-shadow .2s}
 .identity-map .line-a{transform:rotate(-90deg)}.identity-map .line-b{transform:rotate(0deg)}.identity-map .line-c{transform:rotate(90deg)}.identity-map .line-d{transform:rotate(180deg)}
-.identity-map[data-active="governance"] .line-a,.identity-map[data-active="directory"] .line-b,.identity-map[data-active="policy"] .line-c,.identity-map[data-active="review"] .line-d{background:var(--mint);box-shadow:0 0 9px #8fffd5;}
+.identity-map .map-line.line-arrived{background:var(--mint);box-shadow:0 0 9px #8fffd5;}
 .identity-map .map-footer{min-height:74px;padding:15px 20px;font-size:12px;line-height:1.5;letter-spacing:0;text-transform:none;color:#b8d9ce}
 .identity-map .map-core small{font-size:8px;letter-spacing:1px;text-align:center}
 @media(max-width:540px){.identity-map .map-field{grid-template-rows:90px 110px 90px;gap:6px;padding:12px 8px}.identity-map .map-core strong{font-size:19px}.identity-map .map-core small{font-size:7px;letter-spacing:.6px}.identity-map .map-node{font-size:11px;min-height:76px}.identity-map .map-node small{font-size:9px}.identity-map .map-footer{padding:14px;font-size:12px}.identity-map .core-icon svg{width:27px;height:27px}}
@@ -294,19 +298,10 @@ h2,.about-grid h2{font-size:clamp(32px,8.8vw,44px)}
 }
 @media(prefers-reduced-motion:reduce){#contact-dialog::backdrop,#contact-dialog.contact-closing::backdrop{animation:none}}
 
-/* Week 1: one purposeful pulse, then the existing connection highlight. */
-.identity-map .map-line::after{content:'';position:absolute;inset:-2px 0;pointer-events:none;background:linear-gradient(90deg,transparent,#bcffe9,transparent);opacity:0;transform:scaleX(0);transform-origin:left;box-shadow:0 0 8px #8fffd580}
+/* Light travels from the circle's edge into the node before its glow appears. */
+.connection-energy{position:absolute;left:0;top:-2px;width:min(18px,35%);height:5px;pointer-events:none;background:linear-gradient(90deg,transparent,#bcffe9);opacity:0;border-radius:4px;box-shadow:0 0 8px #8fffd580}
+@media(prefers-reduced-motion:reduce){.identity-map .map-node,.identity-map .map-node::after,.identity-map .map-line{transition:none}}
 @media(prefers-reduced-motion:no-preference){
-  .identity-map[data-active="governance"] .line-a::after,
-  .identity-map[data-active="directory"] .line-b::after,
-  .identity-map[data-active="policy"] .line-c::after,
-  .identity-map[data-active="review"] .line-d::after{animation:connection-travel 650ms cubic-bezier(.22,.61,.36,1) both}
-  @keyframes connection-travel{
-    0%{opacity:0;transform:translateX(0) scaleX(.12)}
-    20%{opacity:1}
-    75%{opacity:1;transform:translateX(78%) scaleX(.22)}
-    100%{opacity:0;transform:translateX(88%) scaleX(.12)}
-  }
   /* Copy stays in normal layout; the entrance runs only on page load. */
   .hero-copy h1,.hero-description,.hero-actions{animation:hero-enter 520ms cubic-bezier(.22,.61,.36,1) both}
   .hero-description{animation-delay:90ms}

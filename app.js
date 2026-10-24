@@ -157,13 +157,50 @@ const mapCaption=document.querySelector('#map-caption');
 const mapIndex=ecosystem.querySelector('.map-index');
 const coreCaption=ecosystem.querySelector('.map-core small');
 const mapCopy={governance:['01 / 04','GOVERNANCE','Saviynt EIC governs the identity lifecycle.'],directory:['02 / 04','INTEGRATION','Active Directory connects identities with accounts.'],policy:['03 / 04','ACCESS CONTROL','RBAC connects roles with appropriate permissions.'],review:['04 / 04','ACCESS REVIEWS','Certifications help review existing access.']};
-let hoveredNode=null;
+let hoveredNode=null,energizedNode=null,connectionMotion=null;
+const connectionReduced=matchMedia('(prefers-reduced-motion: reduce)');
+const connectionLines=[...ecosystem.querySelectorAll('.map-line')];
+const identityCore=ecosystem.querySelector('.map-core');
+connectionLines.forEach(line=>{const energy=document.createElement('span');energy.className='connection-energy';energy.setAttribute('aria-hidden','true');line.append(energy);});
+// Measure in the diagram's own coordinates so its decorative rotation does not
+// skew the path. End at the facing edge of each node, including its float offset.
+function positionConnection(node,line){
+  const translate=getComputedStyle(node).translate.split(' ');
+  const nx=node.offsetLeft+node.offsetWidth/2+(parseFloat(translate[0])||0);
+  const ny=node.offsetTop+node.offsetHeight/2+(parseFloat(translate[1])||0);
+  const cx=identityCore.offsetLeft+identityCore.offsetWidth/2,cy=identityCore.offsetTop+identityCore.offsetHeight/2;
+  const dx=nx-cx,dy=ny-cy,distance=Math.hypot(dx,dy)||1,ux=dx/distance,uy=dy/distance;
+  const edge=Math.min(node.offsetWidth/2/(Math.abs(ux)||1e-9),node.offsetHeight/2/(Math.abs(uy)||1e-9));
+  const radius=identityCore.offsetWidth/2,length=Math.max(1,distance-radius-edge);
+  Object.assign(line.style,{left:`${cx+ux*radius}px`,top:`${cy+uy*radius}px`,width:`${length}px`,transform:`rotate(${Math.atan2(dy,dx)}rad)`});
+  node.style.setProperty('--arrival-x',`${node.offsetWidth/2-ux*edge}px`);
+  node.style.setProperty('--arrival-y',`${node.offsetHeight/2-uy*edge}px`);
+  return length;
+}
+function energizeConnection(active){
+  connectionMotion?.cancel();connectionMotion=null;energizedNode=active;
+  mapNodes.forEach(node=>node.classList.remove('map-arrived'));
+  connectionLines.forEach(line=>line.classList.remove('line-arrived'));
+  if(!active)return;
+  const line=connectionLines[mapNodes.indexOf(active)],length=positionConnection(active,line);
+  const arrive=()=>{active.classList.add('map-arrived');line.classList.add('line-arrived');};
+  if(connectionReduced.matches){arrive();return;}
+  const motion=line.firstElementChild.animate([
+    {transform:'translateX(-100%)',opacity:0,offset:0},
+    {opacity:1,offset:.12},
+    {opacity:1,offset:.9},
+    {transform:`translateX(${length}px)`,opacity:0,offset:1}
+  ],{duration:650,easing:'linear'});
+  connectionMotion=motion;
+  motion.finished.then(()=>{if(connectionMotion===motion&&energizedNode===active){connectionMotion=null;arrive();}}).catch(()=>{});
+}
 function updateMap(){
   const focused=mapNodes.find(node=>node===document.activeElement);
   const active=hoveredNode||focused;
   const key=active?.dataset.map;
   ecosystem.dataset.active=key||'';
   mapNodes.forEach(node=>node.classList.toggle('map-active',node===active));
+  if(active!==energizedNode)energizeConnection(active);
   mapIndex.textContent=key?mapCopy[key][0]:'EXPLORE';
   coreCaption.textContent=key?mapCopy[key][1]:'AT THE CENTER.';
   mapCaption.textContent=key?mapCopy[key][2]:'Choose a node to explore how it connects.';
@@ -174,6 +211,11 @@ mapNodes.forEach(node=>{
   node.addEventListener('focus',updateMap);
   node.addEventListener('blur',()=>{queueMicrotask(updateMap);});
 });
+connectionReduced.addEventListener('change',()=>energizeConnection(energizedNode));
+new ResizeObserver(()=>{
+  mapNodes.forEach((node,i)=>positionConnection(node,connectionLines[i]));
+  if(energizedNode)energizeConnection(energizedNode);
+}).observe(ecosystem.querySelector('.map-field'));
 
 // Scroll-linked phone refraction and depth; no pointer tracking or idle animation.
 (()=>{
