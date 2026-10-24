@@ -316,3 +316,48 @@ h2,.about-grid h2{font-size:clamp(32px,8.8vw,44px)}
   /* Keyboard navigation must never land on a transparent control. */
   .hero-actions:focus-within,.hero .identity-map:focus-within{animation:none}
 }
+
+.portal-scene{position:relative;height:calc(var(--stage-height,800px) + var(--travel,700px))}
+.scene-sticky{position:sticky;top:100px;height:var(--stage-height,800px);overflow:hidden;background:radial-gradient(ellipse at 50% 48%,#16332e25,transparent 65%),var(--bg)}
+.portal-intro{position:absolute;top:24px;left:24px;right:24px;text-align:center;z-index:3;pointer-events:none}
+.portal-intro .eyebrow{color:var(--mint);font-size:11px}.portal-intro h1{font-size:clamp(28px,3vw,42px);letter-spacing:-1.5px;margin:12px 0 8px}.portal-intro p{font-size:13px;margin:0}
+.portal-scene .hero{position:absolute;inset:0;width:100%;min-height:0;padding:0;display:block;margin:0}
+.portal-scene .hero-copy{position:absolute;left:56px;top:50%;width:calc(48% - 76px);transform:translateY(-50%);opacity:0}
+.portal-scene .hero-copy h1{font-size:clamp(40px,4.5vw,70px)}
+.portal-scene .hero h1,.portal-scene .hero-description,.portal-scene .hero-actions,.portal-scene .identity-map{animation:none}
+.portal-scene .identity-map{position:absolute;transform:none;box-shadow:none;isolation:isolate;border-color:transparent;background:transparent;border-radius:18px}
+.portal-scene .map-top,.portal-scene .map-footer{position:absolute;left:0;right:0;z-index:2;opacity:0}.portal-scene .map-top{top:0}.portal-scene .map-footer{bottom:0;min-height:56px;padding:12px 20px}
+.portal-scene .identity-map .map-field{position:absolute;inset:46px 10px 58px;display:block;height:auto;padding:0;overflow:visible;background:none}
+.portal-scene .map-core{position:absolute;left:50%;top:50%;width:132px;height:132px;aspect-ratio:1;transform:translate(-50%,-50%);margin:0;padding:0;overflow:visible;isolation:auto;border-radius:50%;z-index:3;background:radial-gradient(circle at 30% 20%,#294a50,#101e29 80%);box-shadow:0 0 55px #8fffd51a;cursor:pointer;gap:3px}
+.portal-scene .map-core::after{display:none}.portal-scene .map-core strong{font-size:27px}.portal-scene .map-core small{font-size:10px;letter-spacing:.3px;text-transform:none}.meet-label{font-size:8px;letter-spacing:1.5px;color:#c4dfd6;margin-top:5px}.portal-scene .core-icon{font-size:21px;color:var(--mint)}
+.portal-scene .identity-map .map-node{position:absolute;width:clamp(112px,20%,176px);height:76px;min-height:0;transform:translate(-50%,-50%);translate:none;animation:none;padding:8px 5px;font-size:13px;gap:4px}
+.portal-scene .map-node small{font-size:10px}.portal-scene .node-0{left:50%;top:2%}.portal-scene .node-1{left:86%;top:34%}.portal-scene .node-2{left:75%;top:88%}.portal-scene .node-3{left:25%;top:88%}.portal-scene .node-4{left:14%;top:34%}
+.portal-scene .map-line{z-index:0}.ripple{position:absolute;inset:-1px;border:1px solid #8fffd555;border-radius:50%;pointer-events:none;z-index:-1;opacity:0}
+@media(prefers-reduced-motion:no-preference){.ripple{animation:identity-ripple 5.6s ease-out infinite}.ripple-two{animation-delay:1.6s}@keyframes identity-ripple{0%{transform:scale(1);opacity:0}10%{opacity:.45}80%,100%{transform:scale(3.2);opacity:0}}}
+.portal-scene .identity-map:has(.map-active) .ripple{border-color:#8fffd522}
+.scroll-invitation{position:absolute;bottom:24px;left:50%;transform:translateX(-50%);font-size:11px;letter-spacing:1px;color:#abbdbb;display:flex;flex-direction:column;align-items:center;gap:8px}.scroll-invitation span{font-size:20px;color:var(--mint)}
+.preview-section-link{margin-top:24px}.portal-scene .map-core:focus-visible{outline:2px solid var(--mint);outline-offset:6px}
+@media(max-width:900px){.scene-sticky{top:78px}.portal-scene .hero-copy{left:24px;right:24px;width:auto;top:24px;transform:none}.portal-scene .hero-copy h1{font-size:42px;margin:18px 0}.portal-scene .hero-description{font-size:15px;max-width:500px;margin-bottom:16px}.portal-scene .hero-meta{margin-top:20px}.portal-intro{top:24px}.portal-intro h1{font-size:30px}.portal-intro p{max-width:280px;margin:auto;font-size:12px}.portal-scene .identity-map .map-field{inset:44px 5px 58px}.portal-scene .map-core{width:104px;height:104px}.portal-scene .map-core strong{font-size:23px}.portal-scene .core-icon{font-size:17px}.portal-scene .map-core small{font-size:9px}.portal-scene .identity-map .map-node{width:100px;height:66px;font-size:11px}.portal-scene .map-node small{font-size:9px}.portal-scene .node-1{left:84%;top:31%}.portal-scene .node-4{left:16%;top:31%}.portal-scene .node-2{left:78%;top:88%}.portal-scene .node-3{left:22%;top:88%}.scroll-invitation{top:640px;bottom:auto;white-space:nowrap}.portal-scene .map-footer{font-size:11px}}
+@media(max-width:360px){.portal-scene .identity-map .map-node{width:88px}.portal-scene .map-core{width:90px;height:90px}.portal-scene .map-core strong{font-size:20px}.portal-scene .hero-copy h1{font-size:35px}}
+@media(prefers-reduced-motion:reduce){.ripple{animation:none;opacity:.12;transform:scale(1.5)}.ripple-two{transform:scale(2.2)}}
+.portal-scene .map-top,.portal-scene .map-footer{pointer-events:none}
+/* Keep preview nodes clear of the card chrome throughout the scroll morph. */
+.portal-scene .identity-map .map-field{inset:82px 10px 86px}
+.portal-scene .node-0{top:10%}
+@media(max-width:900px){.portal-scene .identity-map .map-field{inset:70px 5px}.portal-scene .identity-map .map-node{height:76px}.portal-scene .node-0{top:6%}}
+
+/* Once the diagram docks, each headline line opens through its own mask. */
+.portal-scene .identity-map{max-width:none}
+.heading-mask{display:block;overflow:hidden;white-space:nowrap;padding-bottom:.12em;margin-bottom:-.12em}
+.heading-ink{display:block;will-change:transform}
+.portal-scene .hero h1 .heading-ink.gradient-text{display:block;width:max-content}
+/* The paragraph keeps its original layout and accessible wording throughout. */
+.portal-scene .hero-description{position:relative}
+.shuffle-layer{position:absolute;inset:0;pointer-events:none;color:var(--mint)}
+.shuffle-glyph{position:absolute;display:block;text-align:center;white-space:pre;letter-spacing:0}
+.shuffle-ink{position:absolute;left:50%;width:max-content;transform-origin:center}
+.shuffle-glyph:nth-child(3n){color:#b6a3ff}
+.shuffle-glyph.is-settled{color:var(--muted)}
+.shuffle-glyph.is-name.is-settled{color:#b6a3ff}
+.hero-description.is-shuffling .shuffle-original{opacity:0}
+@media(prefers-reduced-motion:reduce){.heading-ink{transform:none!important;will-change:auto}.shuffle-layer{display:none}.hero-description.is-shuffling .shuffle-original{opacity:1}}
