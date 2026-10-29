@@ -235,6 +235,6 @@
   const target=destinations[button.dataset.detail];if(!target)return;
   const link=element('a',target[1]+' ↗','button primary preview-section-link');link.href=target[0];
   link.addEventListener('click',event=>{event.preventDefault();dialog.close();requestAnimationFrame(()=>{const section=document.querySelector(target[0]);section.scrollIntoView({behavior:reduced.matches?'instant':'smooth'});section.tabIndex=-1;section.focus({preventScroll:true});})});document.querySelector('#detail-content').append(link);
-  if(button.dataset.detail==='introPreview'){const resume=element('a','Download résumé ↓','text-link');resume.href='Vedesh-Emandi-Resume.pdf';resume.download='Vedesh-Emandi-Resume.pdf';resume.style.marginLeft='20px';document.querySelector('#detail-content').append(resume);}
+  if(button.dataset.detail==='introPreview'){const resume=element('a','Download résumé ↓','text-link');resume.href='Vedesh-Emandi-Resume.pdf?v=20261029';resume.download='Vedesh-Emandi-Resume.pdf';resume.style.marginLeft='20px';document.querySelector('#detail-content').append(resume);}
  }));
 })();
